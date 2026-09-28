@@ -97,4 +97,29 @@ private:
     int m_height;
 };
 
+class ViewportFramebuffer {
+public:
+    ViewportFramebuffer();
+    ~ViewportFramebuffer();
+
+    bool init(int width, int height);
+    void resize(int width, int height);
+    void bind() const;
+    void unbind() const;
+
+    GLuint getFbo() const { return m_fbo; }
+    GLuint getColorTexture() const { return m_colorTexture; }
+    int getWidth() const { return m_width; }
+    int getHeight() const { return m_height; }
+
+private:
+    void cleanup();
+
+    GLuint m_fbo;
+    GLuint m_colorTexture;
+    GLuint m_depthRbo;
+    int m_width;
+    int m_height;
+};
+
 } // namespace Djusov

@@ -26,3 +26,5 @@ out/
 # Temporary files
 /tmp/
 *.log
+
+imgui.ini

@@ -31,11 +31,15 @@ static std::string execCommand(const char* cmd) {
 }
 
 std::string Theme::detectSystemAccentColor() {
+    static std::string cachedColor = "";
+    static bool checked = false;
+    if (checked) return cachedColor;
+    checked = true;
 #ifdef __linux__
-    std::string color = execCommand("gsettings get org.gnome.desktop.interface accent-color 2>/dev/null");
-    if (!color.empty()) return color;
-    color = execCommand("gsettings get org.freedesktop.appearance accent-color 2>/dev/null");
-    if (!color.empty()) return color;
+    cachedColor = execCommand("gsettings get org.gnome.desktop.interface accent-color 2>/dev/null");
+    if (!cachedColor.empty()) return cachedColor;
+    cachedColor = execCommand("gsettings get org.freedesktop.appearance accent-color 2>/dev/null");
+    if (!cachedColor.empty()) return cachedColor;
 #endif
     return "";
 }

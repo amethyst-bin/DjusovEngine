@@ -21,6 +21,9 @@
 #include "ui/EditorUI.hpp"
 #include "ui/GameHUD.hpp"
 #include "build/GameBuilder.hpp"
+#include <imgui.h>
+#include <imgui_impl_glfw.h>
+#include <imgui_impl_opengl3.h>
 
 using namespace Djusov;
 
@@ -208,6 +211,12 @@ int main(int argc, char** argv) {
     float gridSnap = 1.0f;
     bool requestBuild = false;
 
+    // Viewport dimensions in Editor mode
+    int viewW = 1280;
+    int viewH = 720;
+    bool viewHovered = false;
+    bool viewFocused = false;
+
     // FreeCam position in editor mode
     glm::vec3 freeCamPos(0.0f, 4.0f, 10.0f);
     float freeCamYaw = -90.0f;
@@ -242,16 +251,21 @@ int main(int argc, char** argv) {
             f5Pressed = false;
         }
 
-        // Camera calculations
+        // Window & Viewport sizing
+        int fboW, fboH;
+        glfwGetFramebufferSize(window, &fboW, &fboH);
+
+        int renderW = isPlayMode ? fboW : viewW;
+        int renderH = isPlayMode ? fboH : viewH;
+        if (renderW <= 16) renderW = 1280;
+        if (renderH <= 16) renderH = 720;
+        renderer.resize(renderW, renderH);
+
+        float aspect = (float)renderW / (float)renderH;
+        glm::mat4 projMatrix = glm::perspective(glm::radians(75.0f), aspect, 0.05f, 500.0f);
         glm::mat4 viewMatrix(1.0f);
         glm::vec3 cameraPos(0.0f);
         glm::vec3 cameraForward(0.0f, 0.0f, -1.0f);
-
-        int fboW, fboH;
-        glfwGetFramebufferSize(window, &fboW, &fboH);
-        renderer.resize(fboW, fboH);
-        float aspect = (fboH > 0) ? (float)fboW / (float)fboH : 1.777f;
-        glm::mat4 projMatrix = glm::perspective(glm::radians(75.0f), aspect, 0.05f, 500.0f);
 
         if (isPlayMode) {
             // PLAY MODE: lock cursor, possessed FPS character
@@ -296,8 +310,12 @@ int main(int argc, char** argv) {
             cameraPos = controller.getCameraPosition();
             cameraForward = controller.getCameraForward();
         } else {
-            // EDITOR MODE: unlock cursor, FreeCam on RMB hold
-            s_freeCamRMB = (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_RIGHT) == GLFW_PRESS);
+            // EDITOR MODE: FreeCam on RMB hold (only if viewport is hovered or already flying)
+            if (viewHovered || s_freeCamRMB) {
+                s_freeCamRMB = (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_RIGHT) == GLFW_PRESS);
+            } else {
+                s_freeCamRMB = false;
+            }
             glfwSetInputMode(window, GLFW_CURSOR, s_freeCamRMB ? GLFW_CURSOR_DISABLED : GLFW_CURSOR_NORMAL);
 
             if (s_freeCamRMB) {
@@ -313,13 +331,50 @@ int main(int argc, char** argv) {
                 cameraForward = glm::normalize(cameraForward);
                 glm::vec3 right = glm::normalize(glm::cross(cameraForward, glm::vec3(0, 1, 0)));
 
-                float camSpeed = (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS) ? 22.0f : 8.0f;
+                float camSpeed = (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS) ? 24.0f : 10.0f;
                 if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) freeCamPos += cameraForward * camSpeed * dt;
                 if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS) freeCamPos -= cameraForward * camSpeed * dt;
                 if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) freeCamPos += right * camSpeed * dt;
                 if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS) freeCamPos -= right * camSpeed * dt;
                 if (glfwGetKey(window, GLFW_KEY_E) == GLFW_PRESS) freeCamPos.y += camSpeed * dt;
                 if (glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS) freeCamPos.y -= camSpeed * dt;
+            } else {
+                float yawR = glm::radians(freeCamYaw);
+                float pitchR = glm::radians(freeCamPitch);
+                cameraForward.x = std::cos(yawR) * std::cos(pitchR);
+                cameraForward.y = std::sin(pitchR);
+                cameraForward.z = std::sin(yawR) * std::cos(pitchR);
+                cameraForward = glm::normalize(cameraForward);
+
+                // Object picking on click inside Viewport
+                static bool s_lmbClicked = false;
+                if (viewHovered && glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS) {
+                    if (!s_lmbClicked) {
+                        s_lmbClicked = true;
+                        RaycastHit hit = world.raycast(freeCamPos, cameraForward);
+                        if (hit.hit && hit.entity) {
+                            editorUI.setSelectedEntityId(hit.entity->getId());
+                        }
+                    }
+                } else {
+                    s_lmbClicked = false;
+                }
+
+                // F key: Focus on selected entity
+                if (glfwGetKey(window, GLFW_KEY_F) == GLFW_PRESS) {
+                    auto ent = world.getEntityById(editorUI.getSelectedEntityId());
+                    if (ent) {
+                        freeCamPos = ent->getPosition() - cameraForward * 6.0f;
+                    }
+                }
+
+                // Delete key: Remove entity
+                if (glfwGetKey(window, GLFW_KEY_DELETE) == GLFW_PRESS) {
+                    if (editorUI.getSelectedEntityId() > 0) {
+                        world.removeEntity(editorUI.getSelectedEntityId());
+                        editorUI.setSelectedEntityId(0);
+                    }
+                }
             }
 
             cameraPos = freeCamPos;
@@ -383,15 +438,30 @@ int main(int argc, char** argv) {
         }
 
         // 5. Post-Process Pass
+        // In Play Mode -> render directly to window backbuffer (FBO 0)
+        // In Editor Mode -> render to Viewport FBO so it displays inside the ImGui Viewport panel
         float ads = isPlayMode ? controller.getADSProgress() : 0.0f;
-        renderer.renderPostProcess(ads, 1.0f, true);
+        GLuint targetFbo = isPlayMode ? 0 : renderer.getViewportFbo();
+        renderer.renderPostProcess(ads, 1.0f, targetFbo);
 
-        // 6. UI Render (Editor UI or Game HUD)
+        // 6. UI Render (Unified ImGui Lifecycle: NewFrame -> Components -> Render)
+        ImGui_ImplOpenGL3_NewFrame();
+        ImGui_ImplGlfw_NewFrame();
+        ImGui::NewFrame();
+
         if (isPlayMode) {
             GameHUD::render(localPlayer, weapon, netClient, fboW, fboH, controller.getADSProgress());
+            if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS) {
+                isPlayMode = false;
+            }
+        } else {
+            editorUI.render(isPlayMode, gridSnap, requestBuild,
+                            renderer.getViewportTexture(), viewW, viewH,
+                            viewHovered, viewFocused);
         }
 
-        editorUI.render(isPlayMode, gridSnap, requestBuild);
+        ImGui::Render();
+        ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 
         glfwSwapBuffers(window);
     }

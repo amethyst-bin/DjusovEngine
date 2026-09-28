@@ -441,11 +441,6 @@ target_sources(Luau.VM PRIVATE
     VM/src/lvm.h
 )
 
-target_sources(isocline PRIVATE
-    extern/isocline/include/isocline.h
-    extern/isocline/src/isocline.c
-)
-
 # Common sources shared between all CLI apps
 target_sources(Luau.CLI.lib PRIVATE
     CLI/include/Luau/FileUtils.h

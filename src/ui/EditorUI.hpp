@@ -15,7 +15,9 @@ public:
     EditorUI();
 
     void init(GLFWwindow* window, World* world, Player* player);
-    void render(bool& isPlayMode, float& gridSnap, bool& requestBuild);
+    void render(bool& isPlayMode, float& gridSnap, bool& requestBuild,
+                GLuint viewportTexture, int& outViewW, int& outViewH,
+                bool& outViewportHovered, bool& outViewportFocused);
 
     uint32_t getSelectedEntityId() const { return m_selectedEntityId; }
     void setSelectedEntityId(uint32_t id) { m_selectedEntityId = id; }
@@ -40,6 +42,8 @@ public:
 private:
     void renderMenuBar(bool& isPlayMode, bool& requestBuild);
     void renderToolbar(bool& isPlayMode, float& gridSnap);
+    void renderViewport(GLuint viewportTexture, int& outViewW, int& outViewH,
+                        bool& outHovered, bool& outFocused, bool& isPlayMode);
     void renderSceneHierarchy();
     void renderInspector();
     void renderPalette(float gridSnap);

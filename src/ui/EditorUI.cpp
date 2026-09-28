@@ -5,6 +5,7 @@
 #include "render/Primitives.hpp"
 
 #include <imgui.h>
+#include <imgui_internal.h>
 #include <imgui_impl_glfw.h>
 #include <imgui_impl_opengl3.h>
 #include <GLFW/glfw3.h>
@@ -153,6 +154,43 @@ void EditorUI::renderToolbar(bool& isPlayMode, float& gridSnap) {
         } else {
             ImGui::TextColored(ImVec4(0.6f, 0.6f, 0.7f, 1.0f), "[EDITOR MODE - RMB + WASD to Fly Camera / Click to Select]");
         }
+    }
+    ImGui::End();
+    ImGui::PopStyleVar();
+}
+
+void EditorUI::renderViewport(GLuint viewportTexture, int& outViewW, int& outViewH,
+                            bool& outHovered, bool& outFocused, bool& isPlayMode) {
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
+    ImGuiWindowFlags flags = ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse;
+    if (ImGui::Begin("Viewport", nullptr, flags)) {
+        outHovered = ImGui::IsWindowHovered();
+        outFocused = ImGui::IsWindowFocused();
+
+        ImVec2 avail = ImGui::GetContentRegionAvail();
+        if (avail.x > 16.0f && avail.y > 16.0f) {
+            outViewW = static_cast<int>(avail.x);
+            outViewH = static_cast<int>(avail.y);
+
+            if (viewportTexture != 0) {
+                // OpenGL textures are flipped vertically relative to ImGui UVs
+                ImGui::Image((ImTextureID)(intptr_t)viewportTexture, avail, ImVec2(0.0f, 1.0f), ImVec2(1.0f, 0.0f));
+            }
+        }
+
+        // Viewport Overlay: Quick info in top-left corner
+        ImVec2 windowPos = ImGui::GetWindowPos();
+        ImDrawList* drawList = ImGui::GetWindowDrawList();
+        drawList->AddRectFilled(ImVec2(windowPos.x + 10, windowPos.y + 35),
+                                ImVec2(windowPos.x + 240, windowPos.y + 85),
+                                IM_COL32(0, 0, 0, 180), 4.0f);
+        drawList->AddText(ImVec2(windowPos.x + 16, windowPos.y + 40),
+                          IM_COL32(240, 240, 240, 255), "3D Scene Viewport");
+        char statsBuf[64];
+        std::snprintf(statsBuf, sizeof(statsBuf), "Entities: %zu | %dx%d",
+                      m_world ? m_world->getEntities().size() : 0, outViewW, outViewH);
+        drawList->AddText(ImVec2(windowPos.x + 16, windowPos.y + 60),
+                          IM_COL32(180, 180, 180, 255), statsBuf);
     }
     ImGui::End();
     ImGui::PopStyleVar();
@@ -516,22 +554,9 @@ void EditorUI::renderBuildDialog(bool& requestBuild) {
     ImGui::End();
 }
 
-void EditorUI::render(bool& isPlayMode, float& gridSnap, bool& requestBuild) {
-    ImGui_ImplOpenGL3_NewFrame();
-    ImGui_ImplGlfw_NewFrame();
-    ImGui::NewFrame();
-
-    // In Play Mode, we render the minimal HUD and Esc menu
-    if (isPlayMode) {
-        if (glfwGetKey(m_window, GLFW_KEY_ESCAPE) == GLFW_PRESS) {
-            isPlayMode = false;
-        }
-        ImGui::Render();
-        ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
-        return;
-    }
-
-    // In Editor Mode, render full Godot/Roblox Studio dock space
+void EditorUI::render(bool& isPlayMode, float& gridSnap, bool& requestBuild,
+                      GLuint viewportTexture, int& outViewW, int& outViewH,
+                      bool& outViewportHovered, bool& outViewportFocused) {
     ImGuiViewport* viewport = ImGui::GetMainViewport();
     ImGui::SetNextWindowPos(viewport->WorkPos);
     ImGui::SetNextWindowSize(viewport->WorkSize);
@@ -551,10 +576,35 @@ void EditorUI::render(bool& isPlayMode, float& gridSnap, bool& requestBuild) {
     ImGuiID dockspaceId = ImGui::GetID("DjusovDockSpace");
     ImGui::DockSpace(dockspaceId, ImVec2(0.0f, 0.0f), ImGuiDockNodeFlags_None);
 
+    // Initial default layout setup (Godot / Roblox Studio layout)
+    static bool s_dockLayoutBuilt = false;
+    if (!s_dockLayoutBuilt || ImGui::DockBuilderGetNode(dockspaceId) == nullptr) {
+        s_dockLayoutBuilt = true;
+
+        ImGui::DockBuilderRemoveNode(dockspaceId);
+        ImGui::DockBuilderAddNode(dockspaceId, ImGuiDockNodeFlags_DockSpace);
+        ImGui::DockBuilderSetNodeSize(dockspaceId, viewport->WorkSize);
+
+        ImGuiID dockMain = dockspaceId;
+        ImGuiID dockLeft = ImGui::DockBuilderSplitNode(dockMain, ImGuiDir_Left, 0.22f, nullptr, &dockMain);
+        ImGuiID dockRight = ImGui::DockBuilderSplitNode(dockMain, ImGuiDir_Right, 0.26f, nullptr, &dockMain);
+        ImGuiID dockBottom = ImGui::DockBuilderSplitNode(dockMain, ImGuiDir_Down, 0.28f, nullptr, &dockMain);
+        ImGuiID dockLeftDown = ImGui::DockBuilderSplitNode(dockLeft, ImGuiDir_Down, 0.48f, nullptr, &dockLeft);
+
+        ImGui::DockBuilderDockWindow("Scene Hierarchy", dockLeft);
+        ImGui::DockBuilderDockWindow("Object Palette", dockLeftDown);
+        ImGui::DockBuilderDockWindow("Inspector", dockRight);
+        ImGui::DockBuilderDockWindow("Script Editor", dockBottom);
+        ImGui::DockBuilderDockWindow("Viewport", dockMain);
+
+        ImGui::DockBuilderFinish(dockspaceId);
+    }
+
     renderMenuBar(isPlayMode, requestBuild);
     ImGui::End();
 
     renderToolbar(isPlayMode, gridSnap);
+    renderViewport(viewportTexture, outViewW, outViewH, outViewportHovered, outViewportFocused, isPlayMode);
     renderSceneHierarchy();
     renderInspector();
     renderPalette(gridSnap);
@@ -570,9 +620,6 @@ void EditorUI::render(bool& isPlayMode, float& gridSnap, bool& requestBuild) {
     if (m_showBuildDialog) {
         renderBuildDialog(requestBuild);
     }
-
-    ImGui::Render();
-    ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 }
 
 } // namespace Djusov

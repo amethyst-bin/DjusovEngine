@@ -51,9 +51,11 @@ public:
                          const Material& handsMat, const Material& weaponMat,
                          const glm::mat4& view, const glm::mat4& viewModelProjection,
                          const glm::vec3& cameraPos, const glm::vec3& sunDir, const glm::vec3& sunColor);
-    void renderPostProcess(float adsAmount, float exposure = 1.0f, bool renderToDefaultFramebuffer = true);
+    void renderPostProcess(float adsAmount, float exposure = 1.0f, GLuint targetFbo = 0);
 
     GLuint getFinalColorTexture() const;
+    GLuint getViewportTexture() const { return m_viewportFbo.getColorTexture(); }
+    GLuint getViewportFbo() const { return m_viewportFbo.getFbo(); }
     int getWidth() const { return m_width; }
     int getHeight() const { return m_height; }
 
@@ -72,6 +74,7 @@ private:
     Shader m_blurShader;
 
     HDRFramebuffer m_hdrFbo;
+    ViewportFramebuffer m_viewportFbo;
     ShadowMapFramebuffer m_shadowFbo;
     PlanarReflectionFramebuffer m_reflectionFbo;
     PingPongBlurFramebuffer m_bloomFbo;

@@ -41,6 +41,7 @@ bool PBRRenderer::init(int width, int height) {
 
     // Initialize Framebuffers
     if (!m_hdrFbo.init(width, height)) return false;
+    if (!m_viewportFbo.init(width, height)) return false;
     if (!m_shadowFbo.init(2048)) return false;
     if (!m_reflectionFbo.init(1024, 1024)) return false;
     if (!m_bloomFbo.init(width / 2, height / 2)) return false;
@@ -58,6 +59,7 @@ void PBRRenderer::resize(int width, int height) {
     m_width = width;
     m_height = height;
     m_hdrFbo.resize(width, height);
+    m_viewportFbo.resize(width, height);
     m_bloomFbo.resize(width / 2, height / 2);
 }
 
@@ -100,6 +102,11 @@ void PBRRenderer::renderReflectionPass(const std::vector<RenderObject>& objects,
     glm::vec3 reflPos = cameraPos - 2.0f * dist * N;
     glm::vec3 reflForward = cameraForward - 2.0f * glm::dot(cameraForward, N) * N;
     glm::vec3 reflUp = glm::vec3(0, 1, 0) - 2.0f * glm::dot(glm::vec3(0, 1, 0), N) * N;
+    if (glm::length(reflForward) > 0.001f) reflForward = glm::normalize(reflForward);
+    else reflForward = glm::vec3(0, 0, -1);
+    if (glm::length(reflUp) > 0.001f) reflUp = glm::normalize(reflUp);
+    else reflUp = glm::vec3(0, 1, 0);
+    if (std::abs(glm::dot(reflForward, reflUp)) > 0.99f) reflUp = glm::vec3(0, 0, 1);
     glm::mat4 reflView = glm::lookAt(reflPos, reflPos + reflForward, reflUp);
 
     m_reflectionFbo.bind();
@@ -261,7 +268,7 @@ void PBRRenderer::renderViewModel(const SkeletalMesh* handsMesh, const Mesh* wea
     m_hdrFbo.unbind();
 }
 
-void PBRRenderer::renderPostProcess(float adsAmount, float exposure, bool renderToDefaultFramebuffer) {
+void PBRRenderer::renderPostProcess(float adsAmount, float exposure, GLuint targetFbo) {
     // 1. Gaussian Blur on bright buffer for Bloom
     bool horizontal = true, firstIteration = true;
     int amount = 6;
@@ -282,9 +289,7 @@ void PBRRenderer::renderPostProcess(float adsAmount, float exposure, bool render
     }
 
     // 2. Final Composite with ACES Tonemapping & ADS Scope Peripheral Blur
-    if (renderToDefaultFramebuffer) {
-        glBindFramebuffer(GL_FRAMEBUFFER, 0);
-    }
+    glBindFramebuffer(GL_FRAMEBUFFER, targetFbo);
     glViewport(0, 0, m_width, m_height);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 

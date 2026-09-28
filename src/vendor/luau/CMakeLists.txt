@@ -44,7 +44,6 @@ if (LUAU_BUILD_SHARED)
     add_library(Luau.CodeGen SHARED)
     add_library(Luau.VM SHARED)
     add_library(Luau.Require SHARED)
-    add_library(isocline SHARED)
 else()
     add_library(Luau.Common STATIC)
     add_library(Luau.CLI.lib STATIC)
@@ -57,7 +56,6 @@ else()
     add_library(Luau.CodeGen STATIC)
     add_library(Luau.VM STATIC)
     add_library(Luau.Require STATIC)
-    add_library(isocline STATIC)
 endif()
 
 if(LUAU_BUILD_CLI)
@@ -140,8 +138,6 @@ target_compile_features(Luau.Require PUBLIC cxx_std_17)
 target_include_directories(Luau.Require PUBLIC Require/include)
 target_link_libraries(Luau.Require PUBLIC Luau.Config Luau.VM)
 
-target_include_directories(isocline PUBLIC extern/isocline/include)
-
 target_include_directories(Luau.VM.Internals INTERFACE VM/src)
 
 set(LUAU_OPTIONS)
@@ -193,7 +189,6 @@ target_compile_options(Luau.Analysis PRIVATE ${LUAU_OPTIONS})
 target_compile_options(Luau.CLI.lib PRIVATE ${LUAU_OPTIONS})
 target_compile_options(Luau.CodeGen PRIVATE ${LUAU_OPTIONS})
 target_compile_options(Luau.VM PRIVATE ${LUAU_OPTIONS})
-target_compile_options(isocline PRIVATE ${LUAU_OPTIONS} ${ISOCLINE_OPTIONS})
 
 if(LUAU_EXTERN_C)
     # enable extern "C" for VM (lua.h, lualib.h) and Compiler (luacode.h) to make Luau friendlier to use from non-C++ languages
