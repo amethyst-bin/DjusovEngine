@@ -40,8 +40,7 @@ public:
     bool getBuildAllowQuickSave() const { return m_buildAllowQuickSave; }
 
 private:
-    void renderMenuBar(bool& isPlayMode, bool& requestBuild);
-    void renderToolbar(bool& isPlayMode, float& gridSnap);
+    void renderMenuBar(bool& isPlayMode, float& gridSnap, bool& requestBuild);
     void renderViewport(GLuint viewportTexture, int& outViewW, int& outViewH,
                         bool& outHovered, bool& outFocused, bool& isPlayMode);
     void renderSceneHierarchy();

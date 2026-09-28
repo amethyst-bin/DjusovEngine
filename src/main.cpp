@@ -444,6 +444,14 @@ int main(int argc, char** argv) {
         GLuint targetFbo = isPlayMode ? 0 : renderer.getViewportFbo();
         renderer.renderPostProcess(ads, 1.0f, targetFbo);
 
+        // Bind default framebuffer (the physical window on your monitor!)
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+        glViewport(0, 0, fboW, fboH);
+        if (!isPlayMode) {
+            glClearColor(0.02f, 0.02f, 0.02f, 1.0f);
+            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        }
+
         // 6. UI Render (Unified ImGui Lifecycle: NewFrame -> Components -> Render)
         ImGui_ImplOpenGL3_NewFrame();
         ImGui_ImplGlfw_NewFrame();

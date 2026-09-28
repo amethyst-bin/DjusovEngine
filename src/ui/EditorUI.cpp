@@ -56,7 +56,7 @@ void EditorUI::openScriptInEditor(const std::string& scriptPath) {
     m_scriptEditorDock.openFile(scriptPath);
 }
 
-void EditorUI::renderMenuBar(bool& isPlayMode, bool& requestBuild) {
+void EditorUI::renderMenuBar(bool& isPlayMode, float& gridSnap, bool& requestBuild) {
     if (ImGui::BeginMainMenuBar()) {
         if (ImGui::BeginMenu("File")) {
             if (ImGui::MenuItem("New Level")) {
@@ -103,60 +103,46 @@ void EditorUI::renderMenuBar(bool& isPlayMode, bool& requestBuild) {
             ImGui::EndMenu();
         }
 
-        ImGui::EndMainMenuBar();
-    }
-}
+        // Toolbar widgets embedded directly inside the top menu bar!
+        ImGui::SameLine(320);
+        ImGui::TextDisabled("|");
+        ImGui::SameLine();
 
-void EditorUI::renderToolbar(bool& isPlayMode, float& gridSnap) {
-    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(8, 6));
-    if (ImGui::Begin("Toolbar", nullptr, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoTitleBar)) {
-        // Big clean Play / Stop button
         if (isPlayMode) {
             ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.85f, 0.25f, 0.25f, 1.0f));
-            if (ImGui::Button("Stop", ImVec2(75, 26))) {
+            if (ImGui::Button(" Stop ", ImVec2(60, 20))) {
                 isPlayMode = false;
             }
             ImGui::PopStyleColor();
         } else {
             ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.2f, 0.75f, 0.35f, 1.0f));
-            if (ImGui::Button("Play", ImVec2(75, 26))) {
+            if (ImGui::Button(" Play ", ImVec2(60, 20))) {
                 isPlayMode = true;
             }
             ImGui::PopStyleColor();
         }
 
         ImGui::SameLine();
-        ImGui::TextDisabled("|");
-        ImGui::SameLine();
-
-        // Grid Snap selector
-        ImGui::Text("Grid Snap:");
+        ImGui::Text("Snap:");
         ImGui::SameLine();
         const char* snapOptions[] = { "Off", "0.25m", "0.5m", "1.0m", "2.0m", "5.0m" };
-        static int currentSnapIdx = 3; // 1.0m default
-        ImGui::SetNextItemWidth(90);
-        if (ImGui::Combo("##GridSnapCombo", &currentSnapIdx, snapOptions, IM_ARRAYSIZE(snapOptions))) {
+        static int currentSnapIdx = 3;
+        ImGui::SetNextItemWidth(75);
+        if (ImGui::Combo("##SnapCombo", &currentSnapIdx, snapOptions, IM_ARRAYSIZE(snapOptions))) {
             float values[] = { 0.0f, 0.25f, 0.5f, 1.0f, 2.0f, 5.0f };
             gridSnap = values[currentSnapIdx];
         }
 
         ImGui::SameLine();
-        ImGui::TextDisabled("|");
-        ImGui::SameLine();
-
-        if (ImGui::Button("Build")) {
+        if (ImGui::Button("Build Game", ImVec2(80, 20))) {
             m_showBuildDialog = true;
         }
 
-        ImGui::SameLine();
-        if (isPlayMode) {
-            ImGui::TextColored(ImVec4(0.3f, 0.9f, 0.4f, 1.0f), "[PLAY MODE ACTIVE - WASD / Space / Shift / LMB to Shoot / RMB to Aim]");
-        } else {
-            ImGui::TextColored(ImVec4(0.6f, 0.6f, 0.7f, 1.0f), "[EDITOR MODE - RMB + WASD to Fly Camera / Click to Select]");
-        }
+        ImGui::SameLine(ImGui::GetWindowWidth() - 320);
+        ImGui::TextDisabled("[RMB + WASD to Fly | LMB to Select | F: Focus]");
+
+        ImGui::EndMainMenuBar();
     }
-    ImGui::End();
-    ImGui::PopStyleVar();
 }
 
 void EditorUI::renderViewport(GLuint viewportTexture, int& outViewW, int& outViewH,
@@ -574,7 +560,6 @@ void EditorUI::render(bool& isPlayMode, float& gridSnap, bool& requestBuild,
     ImGui::PopStyleVar(3);
 
     ImGuiID dockspaceId = ImGui::GetID("DjusovDockSpace");
-    ImGui::DockSpace(dockspaceId, ImVec2(0.0f, 0.0f), ImGuiDockNodeFlags_None);
 
     // Initial default layout setup (Godot / Roblox Studio layout)
     static bool s_dockLayoutBuilt = false;
@@ -600,10 +585,11 @@ void EditorUI::render(bool& isPlayMode, float& gridSnap, bool& requestBuild,
         ImGui::DockBuilderFinish(dockspaceId);
     }
 
-    renderMenuBar(isPlayMode, requestBuild);
+    ImGui::DockSpace(dockspaceId, ImVec2(0.0f, 0.0f), ImGuiDockNodeFlags_PassthruCentralNode);
+
+    renderMenuBar(isPlayMode, gridSnap, requestBuild);
     ImGui::End();
 
-    renderToolbar(isPlayMode, gridSnap);
     renderViewport(viewportTexture, outViewW, outViewH, outViewportHovered, outViewportFocused, isPlayMode);
     renderSceneHierarchy();
     renderInspector();
