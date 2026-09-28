@@ -1,0 +1,28 @@
+# Build directories
+build/
+bin/
+dist/
+cmake-build-*/
+out/
+
+# C++ object and library files
+*.o
+*.obj
+*.so
+*.dylib
+*.dll
+*.a
+*.lib
+*.exe
+
+# IDE and Editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Temporary files
+/tmp/
+*.log
