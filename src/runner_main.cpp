@@ -16,8 +16,59 @@
 #include "network/NetServer.hpp"
 #include "network/NetClient.hpp"
 #include "ui/GameHUD.hpp"
+#include "render/Primitives.hpp"
+#include <imgui.h>
+#include <imgui_impl_glfw.h>
+#include <imgui_impl_opengl3.h>
+#include <filesystem>
 
+namespace fs = std::filesystem;
 using namespace Djusov;
+
+static void setupDefaultScene(World& world) {
+    auto ground = world.createEntity("Ground_Asphalt", "Plane");
+    ground->setPosition(glm::vec3(0.0f, 0.0f, 0.0f));
+    ground->setScale(glm::vec3(80.0f, 1.0f, 80.0f));
+    ground->setMaterial(MaterialManager::createAsphalt());
+
+    auto b1 = world.createEntity("Building_Block_01", "Cube");
+    b1->setPosition(glm::vec3(-12.0f, 6.0f, -15.0f));
+    b1->setScale(glm::vec3(12.0f, 12.0f, 10.0f));
+    b1->setMaterial(MaterialManager::createConcrete());
+
+    auto b2 = world.createEntity("Building_Block_02", "Cube");
+    b2->setPosition(glm::vec3(12.0f, 8.0f, -15.0f));
+    b2->setScale(glm::vec3(14.0f, 16.0f, 10.0f));
+    b2->setMaterial(MaterialManager::createBrick());
+
+    auto mirror = world.createEntity("Mirror_Wall", "Plane");
+    mirror->setPosition(glm::vec3(0.0f, 3.0f, -10.0f));
+    mirror->setScale(glm::vec3(6.0f, 1.0f, 4.5f));
+    mirror->setRotation(glm::vec3(90.0f, 0.0f, 0.0f));
+    mirror->setMaterial(MaterialManager::createMirror());
+
+    auto glass = world.createEntity("Glass_Storefront", "Plane");
+    glass->setPosition(glm::vec3(-6.0f, 2.5f, -8.0f));
+    glass->setScale(glm::vec3(4.0f, 1.0f, 3.0f));
+    glass->setRotation(glm::vec3(90.0f, 0.0f, 0.0f));
+    glass->setMaterial(MaterialManager::createGlass());
+
+    auto lamp = world.createEntity("Street_Lamp", "Cylinder");
+    lamp->setPosition(glm::vec3(4.0f, 2.5f, 2.0f));
+    lamp->setScale(glm::vec3(0.2f, 5.0f, 0.2f));
+    lamp->setMaterial(MaterialManager::createMetal());
+    lamp->setHasLight(true);
+    lamp->getLight().color = glm::vec3(1.0f, 0.85f, 0.55f);
+    lamp->getLight().intensity = 12.0f;
+    lamp->getLight().radius = 25.0f;
+
+    auto ramp = world.createEntity("Metal_Ramp", "Ramp");
+    ramp->setPosition(glm::vec3(6.0f, 0.0f, -4.0f));
+    ramp->setScale(glm::vec3(3.0f, 2.5f, 6.0f));
+    ramp->setMaterial(MaterialManager::createDiamondPlate());
+
+    world.setSpawnPoint(glm::vec3(0.0f, 0.0f, 5.0f));
+}
 
 static double s_lastMouseX = 0.0, s_lastMouseY = 0.0;
 static float s_mouseDeltaX = 0.0f, s_mouseDeltaY = 0.0f;
@@ -39,6 +90,17 @@ static void mouseCallback(GLFWwindow* window, double xpos, double ypos) {
 }
 
 int main(int argc, char** argv) {
+    try {
+        if (argc > 0) {
+            fs::path exeDir = fs::canonical(fs::path(argv[0])).parent_path();
+            if (!fs::exists("de") && fs::exists(exeDir / "de")) {
+                fs::current_path(exeDir);
+            } else if (!fs::exists("de") && fs::exists(exeDir.parent_path() / "de")) {
+                fs::current_path(exeDir.parent_path());
+            }
+        }
+    } catch (...) {}
+
     std::string mapPath = "de/maps/default.djson";
     std::string saveSlot = "";
     std::string connectAddr = "";
@@ -113,6 +175,11 @@ int main(int argc, char** argv) {
     glewInit();
     glEnable(GL_DEPTH_TEST);
 
+    IMGUI_CHECKVERSION();
+    ImGui::CreateContext();
+    ImGui_ImplGlfw_InitForOpenGL(window, true);
+    ImGui_ImplOpenGL3_Init("#version 330");
+
     // Initialize subsystems
     Time::init();
     MaterialManager::init();
@@ -147,12 +214,17 @@ int main(int argc, char** argv) {
     }
 
     // Load initial map or saved state
+    bool mapLoaded = false;
     if (!saveSlot.empty()) {
-        SaveManager::loadGame(saveSlot, world, localPlayer);
+        mapLoaded = SaveManager::loadGame(saveSlot, world, localPlayer);
     } else {
-        SaveManager::loadMap(mapPath, world);
-        localPlayer.setPosition(world.getSpawnPoint() + glm::vec3(0, 1.0f, 0));
+        mapLoaded = SaveManager::loadMap(mapPath, world);
     }
+    if (!mapLoaded || world.getEntities().empty()) {
+        std::cout << "[Runner] Generating default city scene..." << std::endl;
+        setupDefaultScene(world);
+    }
+    localPlayer.setPosition(world.getSpawnPoint() + glm::vec3(0, 1.0f, 0));
 
     // Avatar mesh for player reflection in mirrors
     auto avatarMesh = Primitives::createCharacterAvatarMesh();
@@ -278,14 +350,25 @@ int main(int argc, char** argv) {
                                  controller.getViewMatrix(), controller.getViewModelProjectionMatrix(aspect),
                                  controller.getCameraPosition(), world.getSunDirection(), world.getSunColor());
 
-        // 5. Post-Process Pass (ACES Tonemapping + ADS Scope Peripheral Blur)
-        renderer.renderPostProcess(controller.getADSProgress(), 1.0f, true);
+        // 5. Post-Process Pass (ACES Tonemapping + ADS Scope Peripheral Blur to Screen)
+        renderer.renderPostProcess(controller.getADSProgress(), 1.0f, 0);
 
         // 6. Game HUD Overlay (Health, Stamina, Ammo, Reticle, Hitmarkers)
+        ImGui_ImplOpenGL3_NewFrame();
+        ImGui_ImplGlfw_NewFrame();
+        ImGui::NewFrame();
+
         GameHUD::render(localPlayer, weapon, netClient, fboW, fboH, controller.getADSProgress());
+
+        ImGui::Render();
+        ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 
         glfwSwapBuffers(window);
     }
+
+    ImGui_ImplOpenGL3_Shutdown();
+    ImGui_ImplGlfw_Shutdown();
+    ImGui::DestroyContext();
 
     ScriptEngine::shutdown();
     glfwDestroyWindow(window);

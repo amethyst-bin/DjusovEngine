@@ -1,0 +1,523 @@
+{
+    "entities": [
+        {
+            "active": true,
+            "boolAttrs": {},
+            "floatAttrs": {},
+            "hasCollider": true,
+            "hasLight": false,
+            "id": 1,
+            "isTrigger": false,
+            "material": {
+                "albedo": [
+                    0.18000000715255737,
+                    0.18000000715255737,
+                    0.20000000298023224
+                ],
+                "albedoTexturePath": "",
+                "alpha": 1.0,
+                "ao": 1.0,
+                "emissive": [
+                    0.0,
+                    0.0,
+                    0.0
+                ],
+                "emissiveIntensity": 1.0,
+                "ior": 1.5199999809265137,
+                "isGlass": false,
+                "isMirror": false,
+                "metallic": 0.0,
+                "name": "Asphalt",
+                "normalTexturePath": "",
+                "roughness": 0.8799999952316284,
+                "transmission": 0.0,
+                "uvOffset": [
+                    0.0,
+                    0.0
+                ],
+                "uvTiling": [
+                    1.0,
+                    1.0
+                ]
+            },
+            "modelPath": "",
+            "name": "Ground_Asphalt",
+            "position": [
+                0.0,
+                0.0,
+                0.0
+            ],
+            "primitiveType": "Plane",
+            "rotation": [
+                0.0,
+                0.0,
+                0.0
+            ],
+            "scale": [
+                80.0,
+                1.0,
+                80.0
+            ],
+            "scriptPath": "",
+            "scriptType": "Script",
+            "stringAttrs": {}
+        },
+        {
+            "active": true,
+            "boolAttrs": {},
+            "floatAttrs": {},
+            "hasCollider": true,
+            "hasLight": false,
+            "id": 2,
+            "isTrigger": false,
+            "material": {
+                "albedo": [
+                    0.5799999833106995,
+                    0.5799999833106995,
+                    0.5799999833106995
+                ],
+                "albedoTexturePath": "",
+                "alpha": 1.0,
+                "ao": 1.0,
+                "emissive": [
+                    0.0,
+                    0.0,
+                    0.0
+                ],
+                "emissiveIntensity": 1.0,
+                "ior": 1.5199999809265137,
+                "isGlass": false,
+                "isMirror": false,
+                "metallic": 0.0,
+                "name": "Concrete",
+                "normalTexturePath": "",
+                "roughness": 0.9200000166893005,
+                "transmission": 0.0,
+                "uvOffset": [
+                    0.0,
+                    0.0
+                ],
+                "uvTiling": [
+                    1.0,
+                    1.0
+                ]
+            },
+            "modelPath": "",
+            "name": "Building_Block_01",
+            "position": [
+                -12.0,
+                6.0,
+                -15.0
+            ],
+            "primitiveType": "Cube",
+            "rotation": [
+                0.0,
+                0.0,
+                0.0
+            ],
+            "scale": [
+                12.0,
+                12.0,
+                10.0
+            ],
+            "scriptPath": "",
+            "scriptType": "Script",
+            "stringAttrs": {}
+        },
+        {
+            "active": true,
+            "boolAttrs": {},
+            "floatAttrs": {},
+            "hasCollider": true,
+            "hasLight": false,
+            "id": 3,
+            "isTrigger": false,
+            "material": {
+                "albedo": [
+                    0.6200000047683716,
+                    0.2800000011920929,
+                    0.2199999988079071
+                ],
+                "albedoTexturePath": "",
+                "alpha": 1.0,
+                "ao": 1.0,
+                "emissive": [
+                    0.0,
+                    0.0,
+                    0.0
+                ],
+                "emissiveIntensity": 1.0,
+                "ior": 1.5199999809265137,
+                "isGlass": false,
+                "isMirror": false,
+                "metallic": 0.0,
+                "name": "Brick",
+                "normalTexturePath": "",
+                "roughness": 0.8500000238418579,
+                "transmission": 0.0,
+                "uvOffset": [
+                    0.0,
+                    0.0
+                ],
+                "uvTiling": [
+                    3.0,
+                    3.0
+                ]
+            },
+            "modelPath": "",
+            "name": "Building_Block_02",
+            "position": [
+                12.0,
+                8.0,
+                -15.0
+            ],
+            "primitiveType": "Cube",
+            "rotation": [
+                0.0,
+                0.0,
+                0.0
+            ],
+            "scale": [
+                14.0,
+                16.0,
+                10.0
+            ],
+            "scriptPath": "",
+            "scriptType": "Script",
+            "stringAttrs": {}
+        },
+        {
+            "active": true,
+            "boolAttrs": {},
+            "floatAttrs": {},
+            "hasCollider": true,
+            "hasLight": false,
+            "id": 4,
+            "isTrigger": false,
+            "material": {
+                "albedo": [
+                    0.949999988079071,
+                    0.949999988079071,
+                    0.949999988079071
+                ],
+                "albedoTexturePath": "",
+                "alpha": 1.0,
+                "ao": 1.0,
+                "emissive": [
+                    0.0,
+                    0.0,
+                    0.0
+                ],
+                "emissiveIntensity": 1.0,
+                "ior": 1.5199999809265137,
+                "isGlass": false,
+                "isMirror": true,
+                "metallic": 1.0,
+                "name": "Mirror",
+                "normalTexturePath": "",
+                "roughness": 0.009999999776482582,
+                "transmission": 0.0,
+                "uvOffset": [
+                    0.0,
+                    0.0
+                ],
+                "uvTiling": [
+                    1.0,
+                    1.0
+                ]
+            },
+            "modelPath": "",
+            "name": "Mirror_Wall",
+            "position": [
+                0.0,
+                3.0,
+                -10.0
+            ],
+            "primitiveType": "Plane",
+            "rotation": [
+                90.0,
+                0.0,
+                0.0
+            ],
+            "scale": [
+                6.0,
+                1.0,
+                4.5
+            ],
+            "scriptPath": "",
+            "scriptType": "Script",
+            "stringAttrs": {}
+        },
+        {
+            "active": true,
+            "boolAttrs": {},
+            "floatAttrs": {},
+            "hasCollider": true,
+            "hasLight": false,
+            "id": 5,
+            "isTrigger": false,
+            "material": {
+                "albedo": [
+                    0.8500000238418579,
+                    0.949999988079071,
+                    0.9800000190734863
+                ],
+                "albedoTexturePath": "",
+                "alpha": 0.25,
+                "ao": 1.0,
+                "emissive": [
+                    0.0,
+                    0.0,
+                    0.0
+                ],
+                "emissiveIntensity": 1.0,
+                "ior": 1.5199999809265137,
+                "isGlass": true,
+                "isMirror": false,
+                "metallic": 0.0,
+                "name": "Glass",
+                "normalTexturePath": "",
+                "roughness": 0.05000000074505806,
+                "transmission": 0.949999988079071,
+                "uvOffset": [
+                    0.0,
+                    0.0
+                ],
+                "uvTiling": [
+                    1.0,
+                    1.0
+                ]
+            },
+            "modelPath": "",
+            "name": "Glass_Storefront",
+            "position": [
+                -6.0,
+                2.5,
+                -8.0
+            ],
+            "primitiveType": "Plane",
+            "rotation": [
+                90.0,
+                0.0,
+                0.0
+            ],
+            "scale": [
+                4.0,
+                1.0,
+                3.0
+            ],
+            "scriptPath": "",
+            "scriptType": "Script",
+            "stringAttrs": {}
+        },
+        {
+            "active": true,
+            "boolAttrs": {},
+            "floatAttrs": {},
+            "hasCollider": true,
+            "hasLight": true,
+            "id": 6,
+            "isTrigger": false,
+            "lightColor": [
+                1.0,
+                0.8500000238418579,
+                0.550000011920929
+            ],
+            "lightIntensity": 12.0,
+            "lightRadius": 25.0,
+            "material": {
+                "albedo": [
+                    0.75,
+                    0.7599999904632568,
+                    0.7799999713897705
+                ],
+                "albedoTexturePath": "",
+                "alpha": 1.0,
+                "ao": 1.0,
+                "emissive": [
+                    0.0,
+                    0.0,
+                    0.0
+                ],
+                "emissiveIntensity": 1.0,
+                "ior": 1.5199999809265137,
+                "isGlass": false,
+                "isMirror": false,
+                "metallic": 1.0,
+                "name": "Metal",
+                "normalTexturePath": "",
+                "roughness": 0.25,
+                "transmission": 0.0,
+                "uvOffset": [
+                    0.0,
+                    0.0
+                ],
+                "uvTiling": [
+                    1.0,
+                    1.0
+                ]
+            },
+            "modelPath": "",
+            "name": "Street_Lamp",
+            "position": [
+                4.0,
+                2.5,
+                2.0
+            ],
+            "primitiveType": "Cylinder",
+            "rotation": [
+                0.0,
+                0.0,
+                0.0
+            ],
+            "scale": [
+                0.20000000298023224,
+                5.0,
+                0.20000000298023224
+            ],
+            "scriptPath": "",
+            "scriptType": "Script",
+            "stringAttrs": {}
+        },
+        {
+            "active": true,
+            "boolAttrs": {},
+            "floatAttrs": {},
+            "hasCollider": true,
+            "hasLight": false,
+            "id": 7,
+            "isTrigger": false,
+            "material": {
+                "albedo": [
+                    0.6499999761581421,
+                    0.6700000166893005,
+                    0.699999988079071
+                ],
+                "albedoTexturePath": "",
+                "alpha": 1.0,
+                "ao": 1.0,
+                "emissive": [
+                    0.0,
+                    0.0,
+                    0.0
+                ],
+                "emissiveIntensity": 1.0,
+                "ior": 1.5199999809265137,
+                "isGlass": false,
+                "isMirror": false,
+                "metallic": 0.949999988079071,
+                "name": "DiamondPlate",
+                "normalTexturePath": "",
+                "roughness": 0.3499999940395355,
+                "transmission": 0.0,
+                "uvOffset": [
+                    0.0,
+                    0.0
+                ],
+                "uvTiling": [
+                    4.0,
+                    4.0
+                ]
+            },
+            "modelPath": "",
+            "name": "Metal_Ramp",
+            "position": [
+                6.0,
+                0.0,
+                -4.0
+            ],
+            "primitiveType": "Ramp",
+            "rotation": [
+                0.0,
+                0.0,
+                0.0
+            ],
+            "scale": [
+                3.0,
+                2.5,
+                6.0
+            ],
+            "scriptPath": "",
+            "scriptType": "Script",
+            "stringAttrs": {}
+        },
+        {
+            "active": true,
+            "boolAttrs": {},
+            "floatAttrs": {},
+            "hasCollider": true,
+            "hasLight": false,
+            "id": 8,
+            "isTrigger": false,
+            "material": {
+                "albedo": [
+                    0.20000000298023224,
+                    0.6000000238418579,
+                    1.0
+                ],
+                "albedoTexturePath": "",
+                "alpha": 1.0,
+                "ao": 1.0,
+                "emissive": [
+                    0.20000000298023224,
+                    0.6000000238418579,
+                    1.0
+                ],
+                "emissiveIntensity": 4.0,
+                "ior": 1.5199999809265137,
+                "isGlass": false,
+                "isMirror": false,
+                "metallic": 0.0,
+                "name": "Neon",
+                "normalTexturePath": "",
+                "roughness": 0.10000000149011612,
+                "transmission": 0.0,
+                "uvOffset": [
+                    0.0,
+                    0.0
+                ],
+                "uvTiling": [
+                    1.0,
+                    1.0
+                ]
+            },
+            "modelPath": "",
+            "name": "Neon_Sign",
+            "position": [
+                -12.0,
+                8.5,
+                -9.800000190734863
+            ],
+            "primitiveType": "Cube",
+            "rotation": [
+                0.0,
+                0.0,
+                0.0
+            ],
+            "scale": [
+                5.0,
+                1.2000000476837158,
+                0.30000001192092896
+            ],
+            "scriptPath": "",
+            "scriptType": "Script",
+            "stringAttrs": {}
+        }
+    ],
+    "spawnPoint": [
+        0.0,
+        0.0,
+        5.0
+    ],
+    "sunColor": [
+        1.0,
+        0.9800000190734863,
+        0.9200000166893005
+    ],
+    "sunDirection": [
+        0.550000011920929,
+        1.0,
+        0.3499999940395355
+    ],
+    "sunIntensity": 2.799999952316284
+}

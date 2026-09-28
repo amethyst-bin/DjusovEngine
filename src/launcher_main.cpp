@@ -21,6 +21,15 @@ struct SaveInfo {
 };
 
 int main(int argc, char** argv) {
+    try {
+        if (argc > 0) {
+            fs::path exeDir = fs::canonical(fs::path(argv[0])).parent_path();
+            if (!fs::exists("de") && fs::exists(exeDir / "de")) {
+                fs::current_path(exeDir);
+            }
+        }
+    } catch (...) {}
+
     if (!glfwInit()) {
         std::cerr << "[Launcher] Failed to initialize GLFW!" << std::endl;
         return 1;

@@ -101,6 +101,7 @@ static void setupDefaultScene(World& world) {
     neon->setMaterial(MaterialManager::createNeon());
 
     world.setSpawnPoint(glm::vec3(0.0f, 0.0f, 5.0f));
+    SaveManager::saveMap("de/maps/default.djson", world);
 }
 
 int main(int argc, char** argv) {
