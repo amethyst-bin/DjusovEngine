@@ -1,4 +1,7 @@
+#include <GL/glew.h>
+#include <GLFW/glfw3.h>
 #include "player/FPSController.hpp"
+#include "world/World.hpp"
 #include "audio/AudioEngine.hpp"
 #include <glm/gtc/matrix_transform.hpp>
 #include <algorithm>
@@ -32,7 +35,7 @@ void FPSController::addCameraRecoil(float pitchOffset, float yawOffset) {
     m_recoilYaw += yawOffset;
 }
 
-void FPSController::handleInput(GLFWwindow* window, float dt) {
+void FPSController::handleInput(GLFWwindow* window, float dt, const World* world) {
     if (!m_player || m_player->isDead()) return;
 
     // Smoothly decay camera recoil
@@ -93,10 +96,90 @@ void FPSController::handleInput(GLFWwindow* window, float dt) {
     // Gravity
     currentVel.y -= 18.0f * dt;
 
-    // Apply movement
-    glm::vec3 pos = m_player->getPosition() + currentVel * dt;
+    // Player AABB Collision Resolution against World Entities
+    glm::vec3 pos = m_player->getPosition();
+    const float pRad = 0.35f;
+    const float pHeight = 1.80f;
+    const float stepHeight = 0.45f;
 
-    // Ground collision (flat base floor at y = 0)
+    // 1. Horizontal X movement
+    float dx = currentVel.x * dt;
+    pos.x += dx;
+    if (world) {
+        for (const auto& ent : world->getEntities()) {
+            if (!ent || !ent->hasCollider() || !ent->isActive()) continue;
+            glm::vec3 eMin, eMax;
+            ent->getWorldAABB(eMin, eMax);
+            if (pos.x + pRad > eMin.x && pos.x - pRad < eMax.x &&
+                pos.z + pRad > eMin.z && pos.z - pRad < eMax.z &&
+                pos.y + pHeight > eMin.y && pos.y < eMax.y) {
+                float stepDiff = eMax.y - pos.y;
+                if (stepDiff > 0.0f && stepDiff <= stepHeight) {
+                    pos.y = eMax.y;
+                    m_isGrounded = true;
+                    currentVel.y = 0.0f;
+                } else {
+                    if (dx > 0.0f) pos.x = eMin.x - pRad;
+                    else if (dx < 0.0f) pos.x = eMax.x + pRad;
+                    currentVel.x = 0.0f;
+                }
+            }
+        }
+    }
+
+    // 2. Horizontal Z movement
+    float dz = currentVel.z * dt;
+    pos.z += dz;
+    if (world) {
+        for (const auto& ent : world->getEntities()) {
+            if (!ent || !ent->hasCollider() || !ent->isActive()) continue;
+            glm::vec3 eMin, eMax;
+            ent->getWorldAABB(eMin, eMax);
+            if (pos.x + pRad > eMin.x && pos.x - pRad < eMax.x &&
+                pos.z + pRad > eMin.z && pos.z - pRad < eMax.z &&
+                pos.y + pHeight > eMin.y && pos.y < eMax.y) {
+                float stepDiff = eMax.y - pos.y;
+                if (stepDiff > 0.0f && stepDiff <= stepHeight) {
+                    pos.y = eMax.y;
+                    m_isGrounded = true;
+                    currentVel.y = 0.0f;
+                } else {
+                    if (dz > 0.0f) pos.z = eMin.z - pRad;
+                    else if (dz < 0.0f) pos.z = eMax.x + pRad;
+                    currentVel.z = 0.0f;
+                }
+            }
+        }
+    }
+
+    // 3. Vertical Y movement (gravity & jump)
+    float dy = currentVel.y * dt;
+    pos.y += dy;
+    m_isGrounded = false;
+
+    if (world) {
+        for (const auto& ent : world->getEntities()) {
+            if (!ent || !ent->hasCollider() || !ent->isActive()) continue;
+            glm::vec3 eMin, eMax;
+            ent->getWorldAABB(eMin, eMax);
+            if (pos.x + pRad > eMin.x && pos.x - pRad < eMax.x &&
+                pos.z + pRad > eMin.z && pos.z - pRad < eMax.z) {
+                // Landing on top
+                if (currentVel.y <= 0.0f && pos.y <= eMax.y && (pos.y - dy) >= eMax.y - 0.35f) {
+                    pos.y = eMax.y;
+                    currentVel.y = 0.0f;
+                    m_isGrounded = true;
+                }
+                // Hitting ceiling from below
+                else if (currentVel.y > 0.0f && pos.y + pHeight >= eMin.y && (pos.y + pHeight - dy) <= eMin.y) {
+                    pos.y = eMin.y - pHeight;
+                    currentVel.y = 0.0f;
+                }
+            }
+        }
+    }
+
+    // Flat ground floor fallback
     if (pos.y <= 0.0f) {
         pos.y = 0.0f;
         currentVel.y = 0.0f;

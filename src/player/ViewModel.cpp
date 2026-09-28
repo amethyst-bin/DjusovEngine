@@ -44,44 +44,49 @@ bool ViewModel::init() {
     return true;
 }
 
+void ViewModel::setEquippedWeapon(std::shared_ptr<Mesh> mesh, const Material& mat) {
+    m_weaponMesh = mesh;
+    m_weaponMaterial = mat;
+}
+
 void ViewModel::triggerRecoil(float recoilStrength) {
     m_recoilOffset += 0.06f * recoilStrength;
     m_recoilRotation += 5.0f * recoilStrength;
 }
 
-void ViewModel::update(float dt, const FPSController& controller, float mouseDeltaX, float mouseDeltaY) {
-    m_adsProgress = controller.getADSProgress();
+void ViewModel::update(float dt, const FPSController& controller, float mouseDeltaX, float mouseDeltaY, bool hasWeapon) {
+    m_adsProgress = hasWeapon ? controller.getADSProgress() : 0.0f;
 
     // 1. Mouse Sway with spring recovery
     float swayScale = glm::mix(1.0f, 0.2f, m_adsProgress);
     glm::vec3 targetSway(
-        -mouseDeltaX * 0.0012f * swayScale,
-        -mouseDeltaY * 0.0012f * swayScale,
+        -mouseDeltaX * 0.0015f * swayScale,
+        -mouseDeltaY * 0.0015f * swayScale,
         0.0f
     );
     // Clamp sway
-    targetSway.x = std::clamp(targetSway.x, -0.06f, 0.06f);
-    targetSway.y = std::clamp(targetSway.y, -0.06f, 0.06f);
+    targetSway.x = std::clamp(targetSway.x, -0.08f, 0.08f);
+    targetSway.y = std::clamp(targetSway.y, -0.08f, 0.08f);
 
     m_swayOffset = glm::mix(m_swayOffset, targetSway, dt * 10.0f);
-    m_swayRotation.z = glm::mix(m_swayRotation.z, mouseDeltaX * 0.15f * swayScale, dt * 10.0f);
-    m_swayRotation.x = glm::mix(m_swayRotation.x, mouseDeltaY * 0.15f * swayScale, dt * 10.0f);
+    m_swayRotation.z = glm::mix(m_swayRotation.z, mouseDeltaX * 0.18f * swayScale, dt * 10.0f);
+    m_swayRotation.x = glm::mix(m_swayRotation.x, mouseDeltaY * 0.18f * swayScale, dt * 10.0f);
 
     // 2. Procedural Bobbing based on velocity
-    glm::vec3 vel = glm::vec3(1.0f); // Default walk/idle factor
     float speed = 2.0f; // placeholder for speed factor
     m_bobTimer += dt * 8.0f * speed;
 
-    float bobFactor = glm::mix(1.0f, 0.1f, m_adsProgress); // Bobbing strongly reduced in ADS
-    m_bobOffset.x = std::cos(m_bobTimer * 0.5f) * 0.012f * bobFactor;
-    m_bobOffset.y = std::sin(m_bobTimer) * 0.016f * bobFactor;
+    float bobFactor = glm::mix(1.0f, 0.1f, m_adsProgress);
+    m_bobOffset.x = std::cos(m_bobTimer * 0.5f) * 0.015f * bobFactor;
+    m_bobOffset.y = std::sin(m_bobTimer) * 0.020f * bobFactor;
 
     // 3. Recoil recovery
     m_recoilOffset = glm::mix(m_recoilOffset, 0.0f, dt * 14.0f);
     m_recoilRotation = glm::mix(m_recoilRotation, 0.0f, dt * 14.0f);
 
     // 4. Target position (lerp between hip and ADS)
-    glm::vec3 targetPos = glm::mix(m_hipPosition, m_adsPosition, m_adsProgress);
+    glm::vec3 unarmedHip(0.00f, -0.28f, -0.36f);
+    glm::vec3 targetPos = hasWeapon ? glm::mix(m_hipPosition, m_adsPosition, m_adsProgress) : unarmedHip;
     m_currentPosition = glm::mix(m_currentPosition, targetPos, dt * 16.0f);
 
     // Composite local transform
@@ -96,9 +101,16 @@ void ViewModel::update(float dt, const FPSController& controller, float mouseDel
     m_weaponTransform = camWorld * localT;
 
     // Hands transform positioned naturally in front of the camera gripping the weapon
-    glm::mat4 handsOffset = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, -0.22f, -0.28f))
-                          * glm::rotate(glm::mat4(1.0f), glm::radians(180.0f), glm::vec3(0, 1, 0))
-                          * glm::translate(glm::mat4(1.0f), -glm::vec3(0.0f, -0.10f, 0.76f));
+    glm::mat4 handsOffset(1.0f);
+    if (hasWeapon) {
+        handsOffset = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, -0.16f, -0.32f))
+                    * glm::rotate(glm::mat4(1.0f), glm::radians(180.0f), glm::vec3(0, 1, 0))
+                    * glm::translate(glm::mat4(1.0f), -glm::vec3(0.0f, -0.10f, 0.76f));
+    } else {
+        handsOffset = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, -0.20f, -0.35f))
+                    * glm::rotate(glm::mat4(1.0f), glm::radians(180.0f), glm::vec3(0, 1, 0))
+                    * glm::translate(glm::mat4(1.0f), -glm::vec3(0.0f, -0.10f, 0.76f));
+    }
     m_handsTransform = camWorld * localT * handsOffset;
 
     // Update skeletal hand posing

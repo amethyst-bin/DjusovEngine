@@ -170,6 +170,9 @@ int main(int argc, char** argv) {
     glfwMakeContextCurrent(window);
     glfwSwapInterval(1); // VSync
     glfwSetCursorPosCallback(window, mouseCallback);
+    glfwSetScrollCallback(window, [](GLFWwindow*, double, double yoffset) {
+        GameHUD::onMouseScroll(yoffset);
+    });
     glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 
     glewExperimental = GL_TRUE;
@@ -228,6 +231,14 @@ int main(int argc, char** argv) {
     }
     localPlayer.setPosition(world.getSpawnPoint() + glm::vec3(0, 1.0f, 0));
 
+    // Apply Starter Pack loadout
+    auto& sp = world.getStarterPack();
+    if (sp.giveWeapon && sp.weaponType != "None") {
+        weapon.setTypeByName(sp.weaponType, sp.ammo, sp.reserveAmmo);
+    } else {
+        weapon.setType(WeaponType::None);
+    }
+
     // Avatar mesh for player reflection in mirrors
     auto avatarMesh = Primitives::createCharacterAvatarMesh();
     Material avatarMat = MaterialManager::createSmoothPlastic();
@@ -263,7 +274,7 @@ int main(int argc, char** argv) {
         // FPS Controller input & mouse look
         if (s_cursorLocked && !GameHUD::isChatOpen()) {
             controller.handleMouseMovement(s_mouseDeltaX, s_mouseDeltaY);
-            controller.handleInput(window, dt);
+            controller.handleInput(window, dt, &world);
 
             // Shooting (Left Mouse Button)
             if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS) {
@@ -293,7 +304,8 @@ int main(int argc, char** argv) {
         s_mouseDeltaY = 0.0f;
 
         // Update systems
-        viewModel.update(dt, controller, s_mouseDeltaX, s_mouseDeltaY);
+        viewModel.setEquippedWeapon(weapon.getMesh(), weapon.getMaterial());
+        viewModel.update(dt, controller, s_mouseDeltaX, s_mouseDeltaY, weapon.hasWeapon());
         weapon.update(dt, viewModel, controller);
         ScriptEngine::update(dt);
         netClient.update(dt, localPlayer);
@@ -366,7 +378,7 @@ int main(int argc, char** argv) {
         ImGui_ImplGlfw_NewFrame();
         ImGui::NewFrame();
 
-        GameHUD::render(localPlayer, weapon, netClient, fboW, fboH, controller.getADSProgress());
+        GameHUD::render(window, dt, localPlayer, weapon, netClient, fboW, fboH, controller.getADSProgress());
 
         if (!s_cursorLocked) {
             static float s_volVal = 1.0f;

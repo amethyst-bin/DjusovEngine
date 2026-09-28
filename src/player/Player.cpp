@@ -10,7 +10,8 @@ Player::Player(int id, const std::string& name)
       m_position(0.0f, 1.0f, 0.0f), m_velocity(0.0f),
       m_yaw(-90.0f), m_pitch(0.0f),
       m_isSprinting(false), m_isAiming(false),
-      m_damageVignette(0.0f), m_staminaRegenDelay(0.0f) {}
+      m_damageVignette(0.0f), m_staminaRegenDelay(0.0f),
+      m_equippedWeapon("None"), m_weaponAmmo(0), m_weaponReserve(0) {}
 
 void Player::update(float dt) {
     // Smooth damage vignette fade
@@ -75,6 +76,9 @@ nlohmann::json Player::toJson() const {
     j["position"] = { m_position.x, m_position.y, m_position.z };
     j["yaw"] = m_yaw;
     j["pitch"] = m_pitch;
+    j["equippedWeapon"] = m_equippedWeapon;
+    j["weaponAmmo"] = m_weaponAmmo;
+    j["weaponReserve"] = m_weaponReserve;
     return j;
 }
 
@@ -89,6 +93,9 @@ void Player::fromJson(const nlohmann::json& j) {
     }
     if (j.contains("yaw")) m_yaw = j["yaw"];
     if (j.contains("pitch")) m_pitch = j["pitch"];
+    if (j.contains("equippedWeapon")) m_equippedWeapon = j["equippedWeapon"];
+    if (j.contains("weaponAmmo")) m_weaponAmmo = j["weaponAmmo"];
+    if (j.contains("weaponReserve")) m_weaponReserve = j["weaponReserve"];
 }
 
 } // namespace Djusov

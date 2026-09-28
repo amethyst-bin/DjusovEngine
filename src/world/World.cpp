@@ -230,6 +230,13 @@ nlohmann::json World::toJson() const {
     j["sunIntensity"] = m_sunIntensity;
     j["spawnPoint"] = { m_spawnPoint.x, m_spawnPoint.y, m_spawnPoint.z };
 
+    j["starterPack"] = {
+        { "giveWeapon", m_starterPack.giveWeapon },
+        { "weaponType", m_starterPack.weaponType },
+        { "ammo", m_starterPack.ammo },
+        { "reserveAmmo", m_starterPack.reserveAmmo }
+    };
+
     nlohmann::json entitiesArr = nlohmann::json::array();
     for (const auto& entity : m_entities) {
         entitiesArr.push_back(entity->toJson());
@@ -249,6 +256,14 @@ void World::fromJson(const nlohmann::json& j) {
     if (j.contains("sunIntensity")) m_sunIntensity = j["sunIntensity"];
     if (j.contains("spawnPoint")) {
         m_spawnPoint = glm::vec3(j["spawnPoint"][0], j["spawnPoint"][1], j["spawnPoint"][2]);
+    }
+
+    if (j.contains("starterPack")) {
+        auto sp = j["starterPack"];
+        if (sp.contains("giveWeapon")) m_starterPack.giveWeapon = sp["giveWeapon"];
+        if (sp.contains("weaponType")) m_starterPack.weaponType = sp["weaponType"];
+        if (sp.contains("ammo")) m_starterPack.ammo = sp["ammo"];
+        if (sp.contains("reserveAmmo")) m_starterPack.reserveAmmo = sp["reserveAmmo"];
     }
 
     if (j.contains("entities")) {

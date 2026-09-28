@@ -1,16 +1,19 @@
 #pragma once
 
 #include "player/Player.hpp"
-#include <GLFW/glfw3.h>
 #include <glm/glm.hpp>
 
+struct GLFWwindow;
+
 namespace Djusov {
+
+class World;
 
 class FPSController {
 public:
     FPSController(Player* player);
 
-    void handleInput(GLFWwindow* window, float dt);
+    void handleInput(GLFWwindow* window, float dt, const World* world = nullptr);
     void handleMouseMovement(float xoffset, float yoffset);
 
     glm::mat4 getViewMatrix() const;

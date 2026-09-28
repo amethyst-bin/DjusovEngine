@@ -47,6 +47,13 @@ public:
 
     float getDamageVignette() const { return m_damageVignette; }
 
+    const std::string& getEquippedWeaponName() const { return m_equippedWeapon; }
+    void setEquippedWeaponName(const std::string& name) { m_equippedWeapon = name; }
+    bool hasWeapon() const { return !m_equippedWeapon.empty() && m_equippedWeapon != "None"; }
+    int getWeaponAmmo() const { return m_weaponAmmo; }
+    int getWeaponReserve() const { return m_weaponReserve; }
+    void setWeaponAmmo(int a, int r) { m_weaponAmmo = a; m_weaponReserve = r; }
+
     nlohmann::json toJson() const;
     void fromJson(const nlohmann::json& j);
 
@@ -68,6 +75,10 @@ private:
     bool m_isAiming;
     float m_damageVignette;
     float m_staminaRegenDelay;
+
+    std::string m_equippedWeapon;
+    int m_weaponAmmo;
+    int m_weaponReserve;
 };
 
 } // namespace Djusov

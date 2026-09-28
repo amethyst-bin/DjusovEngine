@@ -2,13 +2,24 @@
 
 #include <vector>
 #include <string>
+#include <memory>
 #include <glm/glm.hpp>
+#include "render/Mesh.hpp"
+#include "render/Material.hpp"
 
 namespace Djusov {
 
 class ViewModel;
 class FPSController;
 class Player;
+
+enum class WeaponType {
+    None = 0,
+    Glock,
+    Revolver,
+    M4,
+    Shotgun
+};
 
 struct BulletTracer {
     glm::vec3 start;
@@ -27,6 +38,12 @@ class Weapon {
 public:
     Weapon();
 
+    void setType(WeaponType type, int ammo = -1, int reserve = -1);
+    void setTypeByName(const std::string& name, int ammo = -1, int reserve = -1);
+    bool hasWeapon() const { return m_type != WeaponType::None; }
+    WeaponType getType() const { return m_type; }
+    std::string getWeaponName() const;
+
     void update(float dt, ViewModel& viewModel, FPSController& controller);
     bool fire(ViewModel& viewModel, FPSController& controller, const glm::vec3& rayOrigin, const glm::vec3& rayDir);
     void reload();
@@ -44,7 +61,16 @@ public:
 
     void registerHit(float damage, bool headshot);
 
+    std::shared_ptr<Mesh> getMesh() const { return m_mesh; }
+    const Material& getMaterial() const { return m_material; }
+
 private:
+    void loadCurrentModel();
+
+    WeaponType m_type;
+    std::shared_ptr<Mesh> m_mesh;
+    Material m_material;
+
     int m_ammo;
     int m_maxAmmo;
     int m_reserveAmmo;
@@ -52,6 +78,7 @@ private:
     float m_fireCooldown;
     float m_fireRate; // shots per second
     float m_damage;
+    int m_pelletCount;
 
     bool m_isReloading;
     float m_reloadTimer;

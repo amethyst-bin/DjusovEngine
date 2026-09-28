@@ -15,7 +15,8 @@ public:
     ViewModel();
 
     bool init();
-    void update(float dt, const FPSController& controller, float mouseDeltaX, float mouseDeltaY);
+    void update(float dt, const FPSController& controller, float mouseDeltaX, float mouseDeltaY, bool hasWeapon = true);
+    void setEquippedWeapon(std::shared_ptr<Mesh> mesh, const Material& mat);
 
     void triggerRecoil(float recoilStrength = 1.0f);
 

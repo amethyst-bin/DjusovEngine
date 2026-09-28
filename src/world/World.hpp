@@ -56,17 +56,31 @@ public:
     std::vector<PointLightData> getPointLights() const;
     const Entity* findClosestMirror(const glm::vec3& cameraPos) const;
 
+    // Starter Pack & Loadout
+    struct StarterPack {
+        bool giveWeapon = false;
+        std::string weaponType = "None"; // "None", "Glock", "Revolver", "M4", "Shotgun"
+        int ammo = 30;
+        int reserveAmmo = 120;
+    };
+
+    StarterPack& getStarterPack() { return m_starterPack; }
+    const StarterPack& getStarterPack() const { return m_starterPack; }
+    void setStarterPack(const StarterPack& sp) { m_starterPack = sp; }
+
     nlohmann::json toJson() const;
     void fromJson(const nlohmann::json& j);
 
 private:
-    uint32_t m_nextEntityId;
     std::vector<std::shared_ptr<Entity>> m_entities;
+    uint32_t m_nextEntityId;
 
     glm::vec3 m_sunDirection;
     glm::vec3 m_sunColor;
     float m_sunIntensity;
     glm::vec3 m_spawnPoint;
+
+    StarterPack m_starterPack;
 };
 
 } // namespace Djusov

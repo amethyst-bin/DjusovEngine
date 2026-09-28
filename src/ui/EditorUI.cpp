@@ -191,7 +191,13 @@ void EditorUI::renderSceneHierarchy() {
             return;
         }
 
-        if (ImGui::TreeNodeEx("World", ImGuiTreeNodeFlags_DefaultOpen | ImGuiTreeNodeFlags_OpenOnArrow)) {
+        bool worldSelected = (m_selectedEntityId == 0);
+        if (ImGui::Selectable("🌍  World (Root & Starter Pack)", worldSelected)) {
+            m_selectedEntityId = 0;
+        }
+        ImGui::Separator();
+
+        if (ImGui::TreeNodeEx("Entities", ImGuiTreeNodeFlags_DefaultOpen | ImGuiTreeNodeFlags_OpenOnArrow)) {
             for (const auto& entity : m_world->getEntities()) {
                 ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_NoTreePushOnOpen;
                 if (entity->getId() == m_selectedEntityId) {
@@ -236,8 +242,65 @@ void EditorUI::renderSceneHierarchy() {
 
 void EditorUI::renderInspector() {
     if (ImGui::Begin("Inspector")) {
-        if (!m_world || m_selectedEntityId == 0) {
-            ImGui::TextDisabled("No entity selected.");
+        if (!m_world) {
+            ImGui::End();
+            return;
+        }
+
+        if (m_selectedEntityId == 0) {
+            // WORLD PROPERTIES & STARTER PACK
+            ImGui::TextColored(ImVec4(0.95f, 0.77f, 0.19f, 1.0f), "🌍  World & Starter Pack Settings");
+            ImGui::Separator();
+            ImGui::Spacing();
+
+            // 1. Starter Pack
+            if (ImGui::CollapsingHeader("🎒  Starter Pack (Default Weapon Loadout)", ImGuiTreeNodeFlags_DefaultOpen)) {
+                auto& sp = m_world->getStarterPack();
+                ImGui::Checkbox("Give Weapon on Start", &sp.giveWeapon);
+
+                if (sp.giveWeapon) {
+                    const char* weaponTypes[] = { "None", "Glock", "Revolver", "M4", "Shotgun" };
+                    int curWp = 0;
+                    if (sp.weaponType == "Glock") curWp = 1;
+                    else if (sp.weaponType == "Revolver") curWp = 2;
+                    else if (sp.weaponType == "M4") curWp = 3;
+                    else if (sp.weaponType == "Shotgun") curWp = 4;
+
+                    if (ImGui::Combo("Weapon Model", &curWp, weaponTypes, IM_ARRAYSIZE(weaponTypes))) {
+                        sp.weaponType = weaponTypes[curWp];
+                        if (sp.weaponType == "None") sp.giveWeapon = false;
+                    }
+
+                    ImGui::SliderInt("Starting Magazine", &sp.ammo, 1, 100);
+                    ImGui::SliderInt("Starting Reserve", &sp.reserveAmmo, 0, 500);
+                } else {
+                    ImGui::TextDisabled("Player starts unarmed. Weapons can be picked up or given via Luau scripts.");
+                }
+            }
+
+            // 2. Lighting & Sun
+            if (ImGui::CollapsingHeader("☼  Sun & Atmosphere", ImGuiTreeNodeFlags_DefaultOpen)) {
+                glm::vec3 sunDir = m_world->getSunDirection();
+                if (ImGui::DragFloat3("Sun Direction", &sunDir.x, 0.02f, -1.0f, 1.0f)) {
+                    m_world->setSunDirection(glm::normalize(sunDir));
+                }
+
+                glm::vec3 sunCol = m_world->getSunColor();
+                if (ImGui::ColorEdit3("Sun Color", &sunCol.x)) {
+                    m_world->setSunColor(sunCol);
+                }
+
+                float sunInt = m_world->getSunIntensity();
+                if (ImGui::SliderFloat("Sun Intensity", &sunInt, 0.1f, 10.0f)) {
+                    m_world->setSunIntensity(sunInt);
+                }
+
+                glm::vec3 spawn = m_world->getSpawnPoint();
+                if (ImGui::DragFloat3("Player Spawn Point", &spawn.x, 0.2f)) {
+                    m_world->setSpawnPoint(spawn);
+                }
+            }
+
             ImGui::End();
             return;
         }

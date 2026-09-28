@@ -170,6 +170,9 @@ int main(int argc, char** argv) {
     glfwMakeContextCurrent(window);
     glfwSwapInterval(1);
     glfwSetCursorPosCallback(window, mouseCallback);
+    glfwSetScrollCallback(window, [](GLFWwindow*, double, double yoffset) {
+        GameHUD::onMouseScroll(yoffset);
+    });
 
     glewExperimental = GL_TRUE;
     glewInit();
@@ -276,7 +279,7 @@ int main(int argc, char** argv) {
 
             controller.setSensitivity(editorUI.getMouseSensitivity());
             controller.handleMouseMovement(s_mouseDeltaX, s_mouseDeltaY);
-            controller.handleInput(window, dt);
+            controller.handleInput(window, dt, &world);
 
             // Shooting (LMB)
             if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS) {
@@ -304,7 +307,19 @@ int main(int argc, char** argv) {
                 SaveManager::saveGame("quick_save", world, localPlayer);
             }
 
-            viewModel.update(dt, controller, s_mouseDeltaX, s_mouseDeltaY);
+            static bool s_lastPlayMode = false;
+            if (isPlayMode && !s_lastPlayMode) {
+                auto& sp = world.getStarterPack();
+                if (sp.giveWeapon && sp.weaponType != "None") {
+                    weapon.setTypeByName(sp.weaponType, sp.ammo, sp.reserveAmmo);
+                } else {
+                    weapon.setType(WeaponType::None);
+                }
+            }
+            s_lastPlayMode = isPlayMode;
+
+            viewModel.setEquippedWeapon(weapon.getMesh(), weapon.getMaterial());
+            viewModel.update(dt, controller, s_mouseDeltaX, s_mouseDeltaY, weapon.hasWeapon());
             weapon.update(dt, viewModel, controller);
             ScriptEngine::update(dt);
             netClient.update(dt, localPlayer);
@@ -465,7 +480,7 @@ int main(int argc, char** argv) {
         ImGui::NewFrame();
 
         if (isPlayMode) {
-            GameHUD::render(localPlayer, weapon, netClient, fboW, fboH, controller.getADSProgress());
+            GameHUD::render(window, dt, localPlayer, weapon, netClient, fboW, fboH, controller.getADSProgress());
             if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS) {
                 isPlayMode = false;
             }

@@ -121,6 +121,27 @@ static int lua_World_getTime(lua_State* L) {
     return 1;
 }
 
+static int lua_Player_giveWeapon(lua_State* L) {
+    const char* weaponName = luaL_checkstring(L, 1);
+    int ammo = (lua_gettop(L) >= 2) ? static_cast<int>(lua_tointeger(L, 2)) : -1;
+    int reserve = (lua_gettop(L) >= 3) ? static_cast<int>(lua_tointeger(L, 3)) : -1;
+    Player* p = ScriptEngine::getLocalPlayer();
+    if (p) {
+        p->setEquippedWeaponName(weaponName);
+        p->setWeaponAmmo(ammo, reserve);
+    }
+    return 0;
+}
+
+static int lua_Player_removeWeapon(lua_State* L) {
+    Player* p = ScriptEngine::getLocalPlayer();
+    if (p) {
+        p->setEquippedWeaponName("None");
+        p->setWeaponAmmo(0, 0);
+    }
+    return 0;
+}
+
 // @de/players bindings
 static int lua_Players_getLocalPlayer(lua_State* L) {
     Player* player = ScriptEngine::getLocalPlayer();
@@ -135,6 +156,13 @@ static int lua_Players_getLocalPlayer(lua_State* L) {
     lua_setfield(L, -2, "health");
     lua_pushnumber(L, player->getStamina());
     lua_setfield(L, -2, "stamina");
+    lua_pushstring(L, player->getEquippedWeaponName().c_str());
+    lua_setfield(L, -2, "weapon");
+
+    lua_pushcfunction(L, lua_Player_giveWeapon, "giveWeapon");
+    lua_setfield(L, -2, "giveWeapon");
+    lua_pushcfunction(L, lua_Player_removeWeapon, "removeWeapon");
+    lua_setfield(L, -2, "removeWeapon");
 
     glm::vec3 pos = player->getPosition();
     lua_newtable(L);

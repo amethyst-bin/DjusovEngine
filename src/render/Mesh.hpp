@@ -1,6 +1,8 @@
 #pragma once
 
 #include <vector>
+#include <memory>
+#include <string>
 #include <GL/glew.h>
 #include <glm/glm.hpp>
 
@@ -29,6 +31,8 @@ public:
     size_t getIndexCount() const { return m_indexCount; }
     const std::vector<Vertex>& getVertices() const { return m_vertices; }
     const std::vector<unsigned int>& getIndices() const { return m_indices; }
+
+    static std::shared_ptr<Mesh> loadModel(const std::string& filePath, float targetLength = 0.0f);
 
 private:
     GLuint m_vao;

@@ -207,15 +207,22 @@ void SkeletalMesh::updateAnimation(float dt, float speedFactor, float adsProgres
 
 void SkeletalMesh::updateGlobalBoneMatrices() {
     std::vector<glm::mat4> worldTransforms(m_bones.size(), glm::mat4(1.0f));
+    std::vector<bool> computed(m_bones.size(), false);
+
+    auto computeWorld = [&](auto& self, size_t idx) -> glm::mat4 {
+        if (computed[idx]) return worldTransforms[idx];
+        int parent = m_bones[idx].parentId;
+        if (parent >= 0 && parent < static_cast<int>(m_bones.size()) && static_cast<size_t>(parent) != idx) {
+            worldTransforms[idx] = self(self, static_cast<size_t>(parent)) * m_bones[idx].localTransform;
+        } else {
+            worldTransforms[idx] = m_bones[idx].localTransform;
+        }
+        computed[idx] = true;
+        return worldTransforms[idx];
+    };
 
     for (size_t i = 0; i < m_bones.size(); ++i) {
-        int parent = m_bones[i].parentId;
-        if (parent >= 0 && parent < static_cast<int>(m_bones.size())) {
-            worldTransforms[i] = worldTransforms[parent] * m_bones[i].localTransform;
-        } else {
-            worldTransforms[i] = m_bones[i].localTransform;
-        }
-
+        computeWorld(computeWorld, i);
         m_finalBoneMatrices[i] = worldTransforms[i] * m_bones[i].inverseBindMatrix;
     }
 }
