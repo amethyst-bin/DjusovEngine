@@ -3,6 +3,7 @@
 #include "core/Math.hpp"
 #include "world/SaveManager.hpp"
 #include "render/Primitives.hpp"
+#include "audio/AudioEngine.hpp"
 
 #include <imgui.h>
 #include <imgui_internal.h>
@@ -18,6 +19,7 @@ EditorUI::EditorUI()
     : m_window(nullptr), m_world(nullptr), m_player(nullptr),
       m_selectedEntityId(0),
       m_showScriptEditor(true), m_showSettings(false), m_showBuildDialog(false), m_showDemoWindow(false),
+      m_mouseSensitivity(1.2f),
       m_buildMultiplayer(false), m_buildWindows(false),
       m_buildMinFOV(10.0f), m_buildMaxFOV(40.0f), m_buildAllowQuickSave(true) {
     std::strncpy(m_buildGameName, "MyCityGame", sizeof(m_buildGameName));
@@ -262,7 +264,7 @@ void EditorUI::renderInspector() {
         ImGui::Separator();
 
         // 1. Transform
-        if (ImGui::CollapsingHeader("Transform", ImGuiTreeNodeFlags_DefaultOpen)) {
+        if (ImGui::CollapsingHeader("⚙  Transform", ImGuiTreeNodeFlags_DefaultOpen)) {
             glm::vec3 pos = entity->getPosition();
             if (ImGui::DragFloat3("Position", &pos.x, 0.1f)) {
                 entity->setPosition(pos);
@@ -286,7 +288,7 @@ void EditorUI::renderInspector() {
         }
 
         // 2. Material
-        if (ImGui::CollapsingHeader("Material", ImGuiTreeNodeFlags_DefaultOpen)) {
+        if (ImGui::CollapsingHeader("◈  Material", ImGuiTreeNodeFlags_DefaultOpen)) {
             Material& mat = entity->getMaterial();
 
             // Preset selector
@@ -341,7 +343,7 @@ void EditorUI::renderInspector() {
         }
 
         // 3. Collider
-        if (ImGui::CollapsingHeader("Collider", ImGuiTreeNodeFlags_DefaultOpen)) {
+        if (ImGui::CollapsingHeader("⬡  Physics Collider", ImGuiTreeNodeFlags_DefaultOpen)) {
             bool hasCol = entity->hasCollider();
             if (ImGui::Checkbox("Has Collider", &hasCol)) {
                 entity->setHasCollider(hasCol);
@@ -354,7 +356,7 @@ void EditorUI::renderInspector() {
         }
 
         // 4. Light Component
-        if (ImGui::CollapsingHeader("Light Component")) {
+        if (ImGui::CollapsingHeader("☼  Light Component", ImGuiTreeNodeFlags_DefaultOpen)) {
             bool hasLight = entity->hasLight();
             if (ImGui::Checkbox("Enable Light", &hasLight)) {
                 entity->setHasLight(hasLight);
@@ -363,13 +365,49 @@ void EditorUI::renderInspector() {
             if (entity->hasLight()) {
                 PointLightData& light = entity->getLight();
                 ImGui::ColorEdit3("Light Color", &light.color.x);
-                ImGui::SliderFloat("Intensity", &light.intensity, 0.5f, 25.0f);
-                ImGui::SliderFloat("Radius", &light.radius, 1.0f, 50.0f);
+                ImGui::SliderFloat("Intensity", &light.intensity, 0.5f, 35.0f);
+                ImGui::SliderFloat("Radius", &light.radius, 1.0f, 60.0f);
             }
         }
 
-        // 5. Script
-        if (ImGui::CollapsingHeader("Script")) {
+        // 5. Sound Component
+        if (ImGui::CollapsingHeader("♫  Sound Audio Component", ImGuiTreeNodeFlags_DefaultOpen)) {
+            bool hasSnd = entity->hasSound();
+            if (ImGui::Checkbox("Enable Sound", &hasSnd)) {
+                entity->setHasSound(hasSnd);
+            }
+
+            if (entity->hasSound()) {
+                std::vector<std::string> sounds = AudioEngine::getAvailableSounds();
+                std::string currentSound = entity->getSoundName();
+                if (ImGui::BeginCombo("Sound Clip", currentSound.c_str())) {
+                    for (const auto& s : sounds) {
+                        bool isSel = (currentSound == s);
+                        if (ImGui::Selectable(s.c_str(), isSel)) {
+                            entity->setSoundName(s);
+                        }
+                        if (isSel) ImGui::SetItemDefaultFocus();
+                    }
+                    ImGui::EndCombo();
+                }
+
+                float vol = entity->getSoundVolume();
+                if (ImGui::SliderFloat("Volume", &vol, 0.0f, 2.0f)) entity->setSoundVolume(vol);
+
+                float pitch = entity->getSoundPitch();
+                if (ImGui::SliderFloat("Pitch", &pitch, 0.5f, 2.0f)) entity->setSoundPitch(pitch);
+
+                float radius = entity->getSoundRadius();
+                if (ImGui::SliderFloat("Audible Radius", &radius, 5.0f, 100.0f)) entity->setSoundRadius(radius);
+
+                if (ImGui::Button("▶ Test Play Sound", ImVec2(-1, 24))) {
+                    entity->playSound();
+                }
+            }
+        }
+
+        // 6. Script
+        if (ImGui::CollapsingHeader("</>  Luau Script Component")) {
             char scriptBuf[128];
             std::strncpy(scriptBuf, entity->getScriptPath().c_str(), sizeof(scriptBuf));
             if (ImGui::InputText("Script Path", scriptBuf, sizeof(scriptBuf))) {
@@ -468,6 +506,18 @@ void EditorUI::renderPalette(float gridSnap) {
             e->setMaterial(MaterialManager::createGlass());
             m_selectedEntityId = e->getId();
         }
+
+        if (ImGui::Button("☼ Point Light", ImVec2(100, 28))) {
+            auto e = m_world->createEntity("PointLight", "Light");
+            e->setPosition(spawnPos + glm::vec3(0, 1.5f, 0));
+            m_selectedEntityId = e->getId();
+        }
+        ImGui::SameLine();
+        if (ImGui::Button("♫ Sound Source", ImVec2(100, 28))) {
+            auto e = m_world->createEntity("SoundSource", "Sound");
+            e->setPosition(spawnPos + glm::vec3(0, 1.0f, 0));
+            m_selectedEntityId = e->getId();
+        }
     }
     ImGui::End();
 }
@@ -499,6 +549,17 @@ void EditorUI::renderSettings() {
             glm::vec4 accent = Theme::getAccentColor();
             ImGui::ColorEdit3("Detected Accent Color", &accent.x, ImGuiColorEditFlags_NoInputs | ImGuiColorEditFlags_NoPicker);
         }
+
+        ImGui::Spacing();
+        ImGui::Text("Audio & Controls");
+        ImGui::Separator();
+
+        float vol = AudioEngine::getMasterVolume();
+        if (ImGui::SliderFloat("Master Volume", &vol, 0.0f, 1.0f)) {
+            AudioEngine::setMasterVolume(vol);
+        }
+
+        ImGui::SliderFloat("Mouse Sensitivity", &m_mouseSensitivity, 0.2f, 3.5f, "%.2fx");
     }
     ImGui::End();
 }

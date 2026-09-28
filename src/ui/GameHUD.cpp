@@ -132,4 +132,38 @@ void GameHUD::render(const Player& player, const Weapon& weapon, const NetClient
     }
 }
 
+void GameHUD::renderPauseMenu(float& inOutSensitivity, float& inOutVolume, bool& inOutResume, bool& requestExit) {
+    ImGuiIO& io = ImGui::GetIO();
+    ImGui::SetNextWindowPos(ImVec2(io.DisplaySize.x * 0.5f - 180.0f, io.DisplaySize.y * 0.5f - 140.0f), ImGuiCond_Always);
+    ImGui::SetNextWindowSize(ImVec2(360.0f, 280.0f));
+
+    ImGuiWindowFlags flags = ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoMove;
+    if (ImGui::Begin("Game Paused", nullptr, flags)) {
+        ImGui::Spacing();
+        ImGui::TextColored(ImVec4(0.95f, 0.75f, 0.2f, 1.0f), "  SETTINGS & CONTROLS");
+        ImGui::Separator();
+        ImGui::Spacing();
+
+        ImGui::SliderFloat("Mouse Sensitivity", &inOutSensitivity, 0.2f, 3.5f, "%.2fx");
+        ImGui::SliderFloat("Master Volume", &inOutVolume, 0.0f, 1.0f, "%.0f%%");
+
+        ImGui::Spacing();
+        ImGui::Separator();
+        ImGui::Spacing();
+
+        if (ImGui::Button("Resume (Esc)", ImVec2(-1, 36))) {
+            inOutResume = true;
+        }
+
+        ImGui::Spacing();
+
+        ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.7f, 0.2f, 0.2f, 1.0f));
+        if (ImGui::Button("Quit / Return", ImVec2(-1, 32))) {
+            requestExit = true;
+        }
+        ImGui::PopStyleColor();
+    }
+    ImGui::End();
+}
+
 } // namespace Djusov

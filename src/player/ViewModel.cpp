@@ -33,9 +33,11 @@ ViewModel::ViewModel()
 
 bool ViewModel::init() {
     m_handsMesh = std::make_shared<SkeletalMesh>();
-    // Try to load the user-provided rigged hands FBX
+    // Try to load the user-provided rigged hands FBX across common paths
     if (!m_handsMesh->loadFBX("assets/models/fps-hands.fbx")) {
-        std::cerr << "[ViewModel] Warning: Could not load 'assets/models/fps-hands.fbx', hands will be omitted." << std::endl;
+        if (!m_handsMesh->loadFBX("dist/assets/models/fps-hands.fbx")) {
+            m_handsMesh->loadFBX("../assets/models/fps-hands.fbx");
+        }
     }
 
     m_weaponMesh = Primitives::createWeaponMesh();
@@ -93,8 +95,10 @@ void ViewModel::update(float dt, const FPSController& controller, float mouseDel
     glm::mat4 camWorld = glm::inverse(controller.getViewMatrix());
     m_weaponTransform = camWorld * localT;
 
-    // Hands transform slightly offset behind and around the weapon
-    glm::mat4 handsOffset = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, -0.05f, 0.12f));
+    // Hands transform positioned naturally in front of the camera gripping the weapon
+    glm::mat4 handsOffset = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, -0.22f, -0.28f))
+                          * glm::rotate(glm::mat4(1.0f), glm::radians(180.0f), glm::vec3(0, 1, 0))
+                          * glm::translate(glm::mat4(1.0f), -glm::vec3(0.0f, -0.10f, 0.76f));
     m_handsTransform = camWorld * localT * handsOffset;
 
     // Update skeletal hand posing

@@ -1,4 +1,5 @@
 #include "player/FPSController.hpp"
+#include "audio/AudioEngine.hpp"
 #include <glm/gtc/matrix_transform.hpp>
 #include <algorithm>
 
@@ -7,14 +8,15 @@ namespace Djusov {
 FPSController::FPSController(Player* player)
     : m_player(player),
       m_baseFov(75.0f), m_adsFov(45.0f), m_currentFov(75.0f), m_adsProgress(0.0f),
-      m_mouseSensitivity(0.12f), m_eyeHeight(1.68f), m_isGrounded(true),
+      m_mouseSensitivity(1.2f), m_eyeHeight(1.68f), m_isGrounded(true),
       m_recoilPitch(0.0f), m_recoilYaw(0.0f) {}
 
 void FPSController::handleMouseMovement(float xoffset, float yoffset) {
     if (!m_player || m_player->isDead()) return;
 
-    // Lower sensitivity during ADS for precision aiming
-    float sens = m_mouseSensitivity * glm::mix(1.0f, 0.55f, m_adsProgress);
+    // Responsive Source/CS sensitivity scale: 1.0 = smooth 1:1 control
+    float sensMultiplier = m_mouseSensitivity * 0.35f;
+    float sens = sensMultiplier * glm::mix(1.0f, 0.55f, m_adsProgress);
 
     float yaw = m_player->getYaw() + xoffset * sens;
     float pitch = m_player->getPitch() + yoffset * sens;
@@ -104,6 +106,20 @@ void FPSController::handleInput(GLFWwindow* window, float dt) {
     m_player->setPosition(pos);
     m_player->setVelocity(currentVel);
     m_player->update(dt);
+
+    // Dynamic footsteps on ground
+    static float s_footstepTimer = 0.0f;
+    float horizSpeed = glm::length(glm::vec2(currentVel.x, currentVel.z));
+    if (m_isGrounded && horizSpeed > 1.2f) {
+        s_footstepTimer += dt * horizSpeed;
+        float interval = wantsSprint ? 2.8f : 2.0f;
+        if (s_footstepTimer >= interval) {
+            s_footstepTimer = 0.0f;
+            AudioEngine::play("footstep", wantsSprint ? 0.75f : 0.45f);
+        }
+    } else {
+        s_footstepTimer = 0.0f;
+    }
 }
 
 glm::vec3 FPSController::getCameraPosition() const {

@@ -39,6 +39,9 @@ public:
     float getBuildMaxFOV() const { return m_buildMaxFOV; }
     bool getBuildAllowQuickSave() const { return m_buildAllowQuickSave; }
 
+    float getMouseSensitivity() const { return m_mouseSensitivity; }
+    void setMouseSensitivity(float sens) { m_mouseSensitivity = sens; }
+
 private:
     void renderMenuBar(bool& isPlayMode, float& gridSnap, bool& requestBuild);
     void renderViewport(GLuint viewportTexture, int& outViewW, int& outViewH,
@@ -59,6 +62,7 @@ private:
     bool m_showSettings;
     bool m_showBuildDialog;
     bool m_showDemoWindow;
+    float m_mouseSensitivity;
 
     ScriptEditorDock m_scriptEditorDock;
 

@@ -18,6 +18,7 @@
 #include "script/ScriptEngine.hpp"
 #include "network/NetServer.hpp"
 #include "network/NetClient.hpp"
+#include "audio/AudioEngine.hpp"
 #include "ui/EditorUI.hpp"
 #include "ui/GameHUD.hpp"
 #include "build/GameBuilder.hpp"
@@ -178,6 +179,7 @@ int main(int argc, char** argv) {
     Time::init();
     MaterialManager::init();
     SaveManager::init();
+    AudioEngine::init();
 
     PBRRenderer renderer;
     if (!renderer.init(winWidth, winHeight)) {
@@ -272,6 +274,7 @@ int main(int argc, char** argv) {
             // PLAY MODE: lock cursor, possessed FPS character
             glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 
+            controller.setSensitivity(editorUI.getMouseSensitivity());
             controller.handleMouseMovement(s_mouseDeltaX, s_mouseDeltaY);
             controller.handleInput(window, dt);
 
@@ -320,8 +323,9 @@ int main(int argc, char** argv) {
             glfwSetInputMode(window, GLFW_CURSOR, s_freeCamRMB ? GLFW_CURSOR_DISABLED : GLFW_CURSOR_NORMAL);
 
             if (s_freeCamRMB) {
-                freeCamYaw += s_mouseDeltaX * 0.12f;
-                freeCamPitch += s_mouseDeltaY * 0.12f;
+                float sens = editorUI.getMouseSensitivity() * 0.35f;
+                freeCamYaw += s_mouseDeltaX * sens;
+                freeCamPitch += s_mouseDeltaY * sens;
                 freeCamPitch = std::clamp(freeCamPitch, -89.0f, 89.0f);
 
                 float yawR = glm::radians(freeCamYaw);
@@ -381,6 +385,8 @@ int main(int argc, char** argv) {
             cameraPos = freeCamPos;
             viewMatrix = glm::lookAt(cameraPos, cameraPos + cameraForward, glm::vec3(0, 1, 0));
         }
+
+        AudioEngine::updateListener(cameraPos, cameraForward, glm::vec3(0, 1, 0));
 
         s_mouseDeltaX = 0.0f;
         s_mouseDeltaY = 0.0f;
@@ -475,6 +481,7 @@ int main(int argc, char** argv) {
         glfwSwapBuffers(window);
     }
 
+    AudioEngine::shutdown();
     ScriptEngine::shutdown();
     glfwDestroyWindow(window);
     glfwTerminate();

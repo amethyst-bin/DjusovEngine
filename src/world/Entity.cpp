@@ -1,5 +1,6 @@
 #include "world/Entity.hpp"
 #include "render/Primitives.hpp"
+#include "audio/AudioEngine.hpp"
 #include <glm/gtc/matrix_transform.hpp>
 
 namespace Djusov {
@@ -10,7 +11,10 @@ Entity::Entity(uint32_t id, const std::string& name)
       m_primitiveType("Cube"), m_modelPath(""),
       m_hasCollider(true), m_isTrigger(false),
       m_colliderMin(-0.5f), m_colliderMax(0.5f),
-      m_hasLight(false), m_scriptPath(""), m_scriptType("Script") {
+      m_hasLight(false),
+      m_hasSound(false), m_soundName("weapon_shoot"),
+      m_soundVolume(1.0f), m_soundPitch(1.0f), m_soundRadius(25.0f), m_soundLoop(false),
+      m_scriptPath(""), m_scriptType("Script") {
 
     m_mesh = Primitives::createCube();
     m_material = MaterialManager::createConcrete();
@@ -38,7 +42,35 @@ void Entity::setPrimitiveType(const std::string& type) {
         m_mesh = Primitives::createRamp();
         m_colliderMin = glm::vec3(-0.5f, 0.0f, -0.5f);
         m_colliderMax = glm::vec3(0.5f, 1.0f, 0.5f);
+    } else if (type == "Light") {
+        m_mesh = Primitives::createSphere();
+        m_hasLight = true;
+        m_hasCollider = false;
+        m_light.color = glm::vec3(1.0f, 0.9f, 0.6f);
+        m_light.intensity = 12.0f;
+        m_light.radius = 25.0f;
+        m_material = MaterialManager::createNeon();
+        m_material.albedo = glm::vec3(1.0f, 0.9f, 0.6f);
+        m_scale = glm::vec3(0.4f);
+    } else if (type == "Sound") {
+        m_mesh = Primitives::createCube();
+        m_hasSound = true;
+        m_hasCollider = false;
+        m_soundName = "weapon_shoot";
+        m_material = MaterialManager::createNeon();
+        m_material.albedo = glm::vec3(0.2f, 0.85f, 1.0f);
+        m_scale = glm::vec3(0.35f);
     }
+}
+
+void Entity::playSound() {
+    if (m_hasSound && !m_soundName.empty()) {
+        AudioEngine::play3D(m_soundName, m_position, m_soundVolume, m_soundRadius);
+    }
+}
+
+void Entity::stopSound() {
+    // Spatial sound stop
 }
 
 glm::mat4 Entity::getTransformMatrix() const {
@@ -102,6 +134,14 @@ nlohmann::json Entity::toJson() const {
         j["lightIntensity"] = m_light.intensity;
         j["lightRadius"] = m_light.radius;
     }
+    j["hasSound"] = m_hasSound;
+    if (m_hasSound) {
+        j["soundName"] = m_soundName;
+        j["soundVolume"] = m_soundVolume;
+        j["soundPitch"] = m_soundPitch;
+        j["soundRadius"] = m_soundRadius;
+        j["soundLoop"] = m_soundLoop;
+    }
     j["scriptPath"] = m_scriptPath;
     j["scriptType"] = m_scriptType;
     j["stringAttrs"] = m_stringAttributes;
@@ -126,6 +166,14 @@ void Entity::fromJson(const nlohmann::json& j) {
         m_light.color = glm::vec3(j["lightColor"][0], j["lightColor"][1], j["lightColor"][2]);
         m_light.intensity = j["lightIntensity"];
         m_light.radius = j["lightRadius"];
+    }
+    if (j.contains("hasSound")) m_hasSound = j["hasSound"];
+    if (m_hasSound) {
+        if (j.contains("soundName")) m_soundName = j["soundName"];
+        if (j.contains("soundVolume")) m_soundVolume = j["soundVolume"];
+        if (j.contains("soundPitch")) m_soundPitch = j["soundPitch"];
+        if (j.contains("soundRadius")) m_soundRadius = j["soundRadius"];
+        if (j.contains("soundLoop")) m_soundLoop = j["soundLoop"];
     }
     if (j.contains("scriptPath")) m_scriptPath = j["scriptPath"];
     if (j.contains("scriptType")) m_scriptType = j["scriptType"];

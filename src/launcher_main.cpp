@@ -17,7 +17,6 @@ namespace fs = std::filesystem;
 struct SaveInfo {
     std::string name;
     std::string time;
-    std::string map;
 };
 
 int main(int argc, char** argv) {
@@ -35,13 +34,14 @@ int main(int argc, char** argv) {
         return 1;
     }
 
-    // Read de/config.json
-    std::string gameName = "MyCityGame";
+    std::string gameName = "DjusovEngine";
     std::string gameMode = "Singleplayer";
-    float minFov = 10.0f;
-    float maxFov = 40.0f;
-    bool allowQuickSave = true;
-    ImVec4 accentColor = ImVec4(1.0f, 1.0f, 1.0f, 1.0f); // Default white
+    float minFov = 60.0f;
+    float maxFov = 110.0f;
+    float sensVal = 1.2f;
+    float volVal = 0.8f;
+    float fovVal = 75.0f;
+    ImVec4 accentColor = ImVec4(0.96f, 0.77f, 0.19f, 1.0f); // Tactical yellow
 
     std::ifstream cfgFile("de/config.json");
     if (cfgFile.is_open()) {
@@ -52,7 +52,9 @@ int main(int argc, char** argv) {
             if (j.contains("mode")) gameMode = j["mode"];
             if (j.contains("minFOV")) minFov = j["minFOV"];
             if (j.contains("maxFOV")) maxFov = j["maxFOV"];
-            if (j.contains("allowQuickSave")) allowQuickSave = j["allowQuickSave"];
+            if (j.contains("sensitivity")) sensVal = j["sensitivity"];
+            if (j.contains("volume")) volVal = j["volume"];
+            if (j.contains("fov")) fovVal = j["fov"];
             if (j.contains("accentColor")) {
                 auto a = j["accentColor"];
                 accentColor = ImVec4(a[0], a[1], a[2], 1.0f);
@@ -65,7 +67,9 @@ int main(int argc, char** argv) {
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
     glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
 
-    GLFWwindow* window = glfwCreateWindow(520, 480, (gameName + " - Launcher").c_str(), nullptr, nullptr);
+    int winW = 860;
+    int winH = 540;
+    GLFWwindow* window = glfwCreateWindow(winW, winH, (gameName + " - Main Menu").c_str(), nullptr, nullptr);
     if (!window) {
         std::cerr << "[Launcher] Failed to create window!" << std::endl;
         glfwTerminate();
@@ -80,7 +84,6 @@ int main(int argc, char** argv) {
     ImGui::CreateContext();
     ImGuiIO& io = ImGui::GetIO();
 
-    // Load bundled font
     if (fs::exists("de/fonts/ui_font.ttf")) {
         io.Fonts->AddFontFromFileTTF("de/fonts/ui_font.ttf", 16.0f);
     } else if (fs::exists("assets/fonts/ui_font.ttf")) {
@@ -89,15 +92,15 @@ int main(int argc, char** argv) {
         io.Fonts->AddFontDefault();
     }
 
-    // Apply Amoled theme
+    // High quality game menu styling
     ImGuiStyle& style = ImGui::GetStyle();
     style.WindowRounding = 0.0f;
-    style.FrameRounding = 4.0f;
-    style.ItemSpacing = ImVec2(8.0f, 8.0f);
-    style.Colors[ImGuiCol_WindowBg] = ImVec4(0.00f, 0.00f, 0.00f, 1.0f);
-    style.Colors[ImGuiCol_FrameBg] = ImVec4(0.08f, 0.08f, 0.10f, 1.0f);
-    style.Colors[ImGuiCol_Button] = ImVec4(0.12f, 0.12f, 0.15f, 1.0f);
-    style.Colors[ImGuiCol_ButtonHovered] = ImVec4(0.18f, 0.18f, 0.22f, 1.0f);
+    style.FrameRounding = 3.0f;
+    style.ItemSpacing = ImVec2(10.0f, 10.0f);
+    style.Colors[ImGuiCol_WindowBg] = ImVec4(0.04f, 0.04f, 0.06f, 1.0f);
+    style.Colors[ImGuiCol_FrameBg] = ImVec4(0.09f, 0.09f, 0.12f, 1.0f);
+    style.Colors[ImGuiCol_Button] = ImVec4(0.12f, 0.13f, 0.17f, 1.0f);
+    style.Colors[ImGuiCol_ButtonHovered] = ImVec4(0.20f, 0.22f, 0.28f, 1.0f);
     style.Colors[ImGuiCol_ButtonActive] = accentColor;
     style.Colors[ImGuiCol_CheckMark] = accentColor;
     style.Colors[ImGuiCol_SliderGrab] = accentColor;
@@ -111,7 +114,7 @@ int main(int argc, char** argv) {
     if (fs::exists("de/saves")) {
         for (const auto& entry : fs::directory_iterator("de/saves")) {
             if (entry.path().extension() == ".djson") {
-                saves.push_back({ entry.path().stem().string(), "Saved Game", "default" });
+                saves.push_back({ entry.path().stem().string(), "Saved Game" });
             }
         }
     }
@@ -119,18 +122,30 @@ int main(int argc, char** argv) {
     char ipBuf[64] = "127.0.0.1";
     int port = 7777;
     char nameBuf[32] = "Player";
-    float fovVal = (minFov + maxFov) * 0.5f;
-    float sensVal = 0.12f;
-    float volVal = 0.8f;
     int selectedSave = -1;
+    int currentTab = 0; // 0=Play, 1=Multiplayer, 2=Settings, 3=Editor
     std::string errorMessage = "";
 
-    auto launchGame = [&](const std::string& extraArgs) {
-        // Validate dependencies
-        std::string runnerPath = "bin/djusov_runner";
-        if (!fs::exists(runnerPath)) {
-            runnerPath = "build/djusov_runner";
+    auto saveSettingsToConfig = [&]() {
+        nlohmann::json j;
+        std::ifstream in("de/config.json");
+        if (in.is_open()) {
+            try { in >> j; } catch (...) {}
+            in.close();
         }
+        j["sensitivity"] = sensVal;
+        j["volume"] = volVal;
+        j["fov"] = fovVal;
+        std::ofstream out("de/config.json");
+        if (out.is_open()) {
+            out << j.dump(4);
+        }
+    };
+
+    auto launchGame = [&](const std::string& extraArgs) {
+        saveSettingsToConfig();
+        std::string runnerPath = "bin/djusov_runner";
+        if (!fs::exists(runnerPath)) runnerPath = "build/djusov_runner";
         if (!fs::exists(runnerPath)) {
             errorMessage = "Missing executable: 'bin/djusov_runner' was not found!";
             return;
@@ -149,99 +164,174 @@ int main(int argc, char** argv) {
         ImGui::NewFrame();
 
         ImGui::SetNextWindowPos(ImVec2(0, 0));
-        ImGui::SetNextWindowSize(ImVec2(520, 480));
-        ImGui::Begin("LauncherMain", nullptr, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove);
+        ImGui::SetNextWindowSize(ImVec2(static_cast<float>(winW), static_cast<float>(winH)));
+        ImGuiWindowFlags flags = ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize |
+                                 ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoCollapse;
 
-        // Header Title
-        ImGui::Spacing();
-        ImGui::SetCursorPosX(20);
-        ImGui::TextColored(accentColor, "%s", gameName.c_str());
-        ImGui::SameLine();
-        ImGui::TextDisabled("v1.0.0");
-        ImGui::Separator();
-        ImGui::Spacing();
+        ImGui::Begin("GameMenuScreen", nullptr, flags);
 
-        if (ImGui::BeginTabBar("LauncherTabs")) {
-            if (ImGui::BeginTabItem("Play")) {
-                ImGui::Spacing();
+        // Header Background Banner
+        ImDrawList* dl = ImGui::GetWindowDrawList();
+        dl->AddRectFilled(ImVec2(0, 0), ImVec2(static_cast<float>(winW), 80), IM_COL32(10, 12, 16, 255));
+        dl->AddLine(ImVec2(0, 80), ImVec2(static_cast<float>(winW), 80), IM_COL32(245, 196, 48, 255), 2.0f);
 
-                if (gameMode == "Singleplayer") {
-                    // Singleplayer Launch
-                    ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.18f, 0.65f, 0.32f, 1.0f));
-                    if (ImGui::Button("Play Game", ImVec2(-20, 42))) {
-                        if (selectedSave >= 0 && selectedSave < static_cast<int>(saves.size())) {
-                            launchGame("--save " + saves[selectedSave].name);
-                        } else {
-                            launchGame("--map de/maps/default.djson");
-                        }
-                    }
-                    ImGui::PopStyleColor();
+        // Game Title
+        dl->AddText(ImVec2(30, 20), IM_COL32(245, 196, 48, 255), "DJUSOV ENGINE");
+        dl->AddText(ImVec2(30, 48), IM_COL32(160, 165, 175, 255), "TACTICAL FIRST-PERSON SIMULATION");
 
-                    ImGui::Spacing();
-                    ImGui::Separator();
-                    ImGui::Text("Saves");
+        dl->AddText(ImVec2(static_cast<float>(winW) - 130, 32), IM_COL32(120, 125, 135, 255), "RELEASE v1.0.0");
 
-                    if (saves.empty()) {
-                        ImGui::TextDisabled("No saves found. Start a new game!");
-                    } else {
-                        for (int i = 0; i < static_cast<int>(saves.size()); ++i) {
-                            bool isSelected = (selectedSave == i);
-                            if (ImGui::Selectable(saves[i].name.c_str(), isSelected)) {
-                                selectedSave = i;
-                            }
-                        }
-                        if (selectedSave >= 0) {
-                            ImGui::TextDisabled("Selected save: %s", saves[selectedSave].name.c_str());
-                        }
-                    }
-                } else {
-                    // Multiplayer Launch
-                    ImGui::InputText("Server IP", ipBuf, sizeof(ipBuf));
-                    ImGui::InputInt("Port", &port);
-                    ImGui::InputText("Nickname", nameBuf, sizeof(nameBuf));
+        ImGui::SetCursorPos(ImVec2(20, 100));
 
-                    ImGui::Spacing();
-                    ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.2f, 0.55f, 0.95f, 1.0f));
-                    if (ImGui::Button("Join Game", ImVec2(-20, 38))) {
-                        launchGame("--connect " + std::string(ipBuf) + ":" + std::to_string(port) + " --name " + std::string(nameBuf));
-                    }
-                    ImGui::PopStyleColor();
-
-                    ImGui::Spacing();
-                    if (ImGui::Button("Host Dedicated Server", ImVec2(-20, 30))) {
-                        std::string cmd = "bin/djusov_runner --server " + std::to_string(port) + " &";
-                        std::system(cmd.c_str());
-                    }
+        // Left Navigation Column (Tactical Game Buttons)
+        ImGui::BeginChild("NavColumn", ImVec2(220, static_cast<float>(winH) - 120), true);
+        {
+            auto menuButton = [&](const char* label, int tabIdx) {
+                bool active = (currentTab == tabIdx);
+                if (active) {
+                    ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(accentColor.x * 0.7f, accentColor.y * 0.7f, accentColor.z * 0.7f, 1.0f));
+                    ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 1.0f, 1.0f, 1.0f));
                 }
-
-                if (!errorMessage.empty()) {
-                    ImGui::Spacing();
-                    ImGui::TextColored(ImVec4(1.0f, 0.3f, 0.3f, 1.0f), "[Error] %s", errorMessage.c_str());
+                if (ImGui::Button(label, ImVec2(-1, 46))) {
+                    currentTab = tabIdx;
                 }
-
-                ImGui::EndTabItem();
-            }
-
-            if (ImGui::BeginTabItem("Settings")) {
+                if (active) {
+                    ImGui::PopStyleColor(2);
+                }
                 ImGui::Spacing();
-                ImGui::SliderFloat("FOV", &fovVal, minFov, maxFov, "%.0f deg");
-                ImGui::SliderFloat("Mouse Sensitivity", &sensVal, 0.02f, 0.50f);
-                ImGui::SliderFloat("Master Volume", &volVal, 0.0f, 1.0f);
-                ImGui::Spacing();
-                ImGui::TextDisabled("Config: min FOV %.0f, max FOV %.0f", minFov, maxFov);
-                ImGui::EndTabItem();
-            }
+            };
 
-            ImGui::EndTabBar();
+            menuButton("▶  START GAME", 0);
+            menuButton("⬡  MULTIPLAYER", 1);
+            menuButton("⚙  SETTINGS", 2);
+            menuButton("◈  STUDIO EDITOR", 3);
+
+            ImGui::Spacing();
+            ImGui::Separator();
+            ImGui::Spacing();
+
+            ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.35f, 0.12f, 0.12f, 1.0f));
+            if (ImGui::Button("✕  QUIT", ImVec2(-1, 40))) {
+                glfwSetWindowShouldClose(window, GLFW_TRUE);
+            }
+            ImGui::PopStyleColor();
         }
+        ImGui::EndChild();
+
+        ImGui::SameLine();
+
+        // Right Content View
+        ImGui::BeginChild("ContentView", ImVec2(static_cast<float>(winW) - 270, static_cast<float>(winH) - 120), true);
+        {
+            if (currentTab == 0) {
+                // START GAME TAB
+                ImGui::TextColored(accentColor, "CAMPAIGN & SANDBOX");
+                ImGui::Separator();
+                ImGui::Spacing();
+
+                ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.18f, 0.65f, 0.32f, 1.0f));
+                if (ImGui::Button("▶  LAUNCH LEVEL", ImVec2(-1, 52))) {
+                    if (selectedSave >= 0 && selectedSave < static_cast<int>(saves.size())) {
+                        launchGame("--save " + saves[selectedSave].name);
+                    } else {
+                        launchGame("--map de/maps/default.djson");
+                    }
+                }
+                ImGui::PopStyleColor();
+
+                ImGui::Spacing();
+                ImGui::Separator();
+                ImGui::Text("Save Slots (Full Instance Snapshots):");
+
+                if (saves.empty()) {
+                    ImGui::TextDisabled("No saves found. A new game will be initialized.");
+                } else {
+                    for (int i = 0; i < static_cast<int>(saves.size()); ++i) {
+                        bool isSel = (selectedSave == i);
+                        std::string label = "Slot: " + saves[i].name;
+                        if (ImGui::Selectable(label.c_str(), isSel)) {
+                            selectedSave = i;
+                        }
+                    }
+                }
+            } else if (currentTab == 1) {
+                // MULTIPLAYER TAB
+                ImGui::TextColored(accentColor, "DEDICATED MULTIPLAYER MATCHMAKING");
+                ImGui::Separator();
+                ImGui::Spacing();
+
+                ImGui::InputText("Player Nickname", nameBuf, sizeof(nameBuf));
+                ImGui::InputText("Server Address", ipBuf, sizeof(ipBuf));
+                ImGui::InputInt("Server Port", &port);
+
+                ImGui::Spacing();
+                ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.2f, 0.55f, 0.95f, 1.0f));
+                if (ImGui::Button("▶  CONNECT TO SERVER", ImVec2(-1, 46))) {
+                    launchGame("--connect " + std::string(ipBuf) + ":" + std::to_string(port) + " --name " + std::string(nameBuf));
+                }
+                ImGui::PopStyleColor();
+
+                ImGui::Spacing();
+                if (ImGui::Button("Host Local Dedicated Server (:7777)", ImVec2(-1, 36))) {
+                    std::string cmd = (fs::exists("bin/djusov_runner") ? "bin/djusov_runner" : "build/djusov_runner") + std::string(" --server 7777 &");
+                    std::system(cmd.c_str());
+                    launchGame("--connect 127.0.0.1:7777 --name Host");
+                }
+            } else if (currentTab == 2) {
+                // SETTINGS TAB
+                ImGui::TextColored(accentColor, "INPUT & AUDIO CONFIGURATION");
+                ImGui::Separator();
+                ImGui::Spacing();
+
+                ImGui::Text("Mouse Sensitivity:");
+                ImGui::SliderFloat("##Sensitivity", &sensVal, 0.2f, 3.5f, "%.2fx");
+                ImGui::TextDisabled("Configurable for ultra-fast or precision aim.");
+
+                ImGui::Spacing();
+                ImGui::Text("Field of View (FOV):");
+                ImGui::SliderFloat("##FOV", &fovVal, minFov, maxFov, "%.0f deg");
+
+                ImGui::Spacing();
+                ImGui::Text("Master Sound Volume:");
+                ImGui::SliderFloat("##Volume", &volVal, 0.0f, 1.0f, "%.0f%%");
+
+                ImGui::Spacing();
+                ImGui::Separator();
+                ImGui::Spacing();
+
+                if (ImGui::Button("Save Settings", ImVec2(160, 34))) {
+                    saveSettingsToConfig();
+                }
+            } else if (currentTab == 3) {
+                // STUDIO EDITOR TAB
+                ImGui::TextColored(accentColor, "DJUSOVENGINE LEVEL STUDIO");
+                ImGui::Separator();
+                ImGui::Spacing();
+
+                ImGui::TextWrapped("Open the full 3D Level Editor to build city streets, spawn buildings, place lights and sounds, write Luau scripts, and compile new game builds.");
+
+                ImGui::Spacing();
+                ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.75f, 0.50f, 0.15f, 1.0f));
+                if (ImGui::Button("LAUNCH DJUSOVENGINE STUDIO", ImVec2(-1, 50))) {
+                    std::string studioPath = fs::exists("DjusovEngine") ? "./DjusovEngine" : "./build/DjusovEngine";
+                    std::system((studioPath + " &").c_str());
+                    glfwSetWindowShouldClose(window, GLFW_TRUE);
+                }
+                ImGui::PopStyleColor();
+            }
+
+            if (!errorMessage.empty()) {
+                ImGui::Spacing();
+                ImGui::TextColored(ImVec4(1.0f, 0.2f, 0.2f, 1.0f), "[Error] %s", errorMessage.c_str());
+            }
+        }
+        ImGui::EndChild();
 
         ImGui::End();
 
         ImGui::Render();
-        int display_w, display_h;
-        glfwGetFramebufferSize(window, &display_w, &display_h);
-        glViewport(0, 0, display_w, display_h);
-        glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+        glViewport(0, 0, winW, winH);
+        glClearColor(0.04f, 0.04f, 0.06f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT);
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 

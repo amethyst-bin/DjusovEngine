@@ -52,6 +52,22 @@ public:
     PointLightData& getLight() { return m_light; }
     const PointLightData& getLight() const { return m_light; }
 
+    // Sound Component
+    bool hasSound() const { return m_hasSound; }
+    void setHasSound(bool has) { m_hasSound = has; }
+    const std::string& getSoundName() const { return m_soundName; }
+    void setSoundName(const std::string& name) { m_soundName = name; }
+    float getSoundVolume() const { return m_soundVolume; }
+    void setSoundVolume(float vol) { m_soundVolume = vol; }
+    float getSoundPitch() const { return m_soundPitch; }
+    void setSoundPitch(float pitch) { m_soundPitch = pitch; }
+    float getSoundRadius() const { return m_soundRadius; }
+    void setSoundRadius(float radius) { m_soundRadius = radius; }
+    bool isSoundLoop() const { return m_soundLoop; }
+    void setSoundLoop(bool loop) { m_soundLoop = loop; }
+    void playSound();
+    void stopSound();
+
     const std::string& getScriptPath() const { return m_scriptPath; }
     void setScriptPath(const std::string& path) { m_scriptPath = path; }
 
@@ -93,6 +109,13 @@ private:
 
     bool m_hasLight;
     PointLightData m_light;
+
+    bool m_hasSound;
+    std::string m_soundName;
+    float m_soundVolume;
+    float m_soundPitch;
+    float m_soundRadius;
+    bool m_soundLoop;
 
     std::string m_scriptPath;
     std::string m_scriptType; // "Script" or "LocalScript"

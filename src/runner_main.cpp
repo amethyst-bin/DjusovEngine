@@ -16,6 +16,7 @@
 #include "network/NetServer.hpp"
 #include "network/NetClient.hpp"
 #include "ui/GameHUD.hpp"
+#include "audio/AudioEngine.hpp"
 #include "render/Primitives.hpp"
 #include <imgui.h>
 #include <imgui_impl_glfw.h>
@@ -183,6 +184,7 @@ int main(int argc, char** argv) {
     // Initialize subsystems
     Time::init();
     MaterialManager::init();
+    AudioEngine::init();
 
     PBRRenderer renderer;
     if (!renderer.init(winWidth, winHeight)) {
@@ -237,9 +239,15 @@ int main(int argc, char** argv) {
         float dt = Time::deltaTime();
 
         // Cursor unlock toggle (Escape)
+        static bool s_escPressed = false;
         if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS) {
-            s_cursorLocked = !s_cursorLocked;
-            glfwSetInputMode(window, GLFW_CURSOR, s_cursorLocked ? GLFW_CURSOR_DISABLED : GLFW_CURSOR_NORMAL);
+            if (!s_escPressed) {
+                s_cursorLocked = !s_cursorLocked;
+                glfwSetInputMode(window, GLFW_CURSOR, s_cursorLocked ? GLFW_CURSOR_DISABLED : GLFW_CURSOR_NORMAL);
+                s_escPressed = true;
+            }
+        } else {
+            s_escPressed = false;
         }
 
         // Chat toggle (T key)
@@ -360,12 +368,29 @@ int main(int argc, char** argv) {
 
         GameHUD::render(localPlayer, weapon, netClient, fboW, fboH, controller.getADSProgress());
 
+        if (!s_cursorLocked) {
+            static float s_volVal = 1.0f;
+            bool resume = false;
+            bool exitGame = false;
+            GameHUD::renderPauseMenu(customSens, s_volVal, resume, exitGame);
+            controller.setSensitivity(customSens);
+            AudioEngine::setMasterVolume(s_volVal);
+            if (resume) {
+                s_cursorLocked = true;
+                glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+            }
+            if (exitGame) {
+                glfwSetWindowShouldClose(window, GLFW_TRUE);
+            }
+        }
+
         ImGui::Render();
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 
         glfwSwapBuffers(window);
     }
 
+    AudioEngine::shutdown();
     ImGui_ImplOpenGL3_Shutdown();
     ImGui_ImplGlfw_Shutdown();
     ImGui::DestroyContext();

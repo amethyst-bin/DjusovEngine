@@ -2,6 +2,7 @@
 #include "world/World.hpp"
 #include "world/SaveManager.hpp"
 #include "player/Player.hpp"
+#include "audio/AudioEngine.hpp"
 
 #include <iostream>
 #include <fstream>
@@ -45,6 +46,41 @@ static int lua_SaveManager_load(lua_State* L) {
     return 1;
 }
 
+static int lua_SoundObject_Play(lua_State* L) {
+    const char* sound = "weapon_shoot";
+    if (lua_gettop(L) >= 2 && lua_isstring(L, 2)) {
+        sound = lua_tostring(L, 2);
+    }
+    AudioEngine::play(sound);
+    return 0;
+}
+
+static int lua_SoundObject_Stop(lua_State* L) {
+    return 0;
+}
+
+static int lua_World_playSound(lua_State* L) {
+    const char* sound = luaL_checkstring(L, 1);
+    float vol = (lua_gettop(L) >= 2) ? static_cast<float>(lua_tonumber(L, 2)) : 1.0f;
+    float pitch = (lua_gettop(L) >= 3) ? static_cast<float>(lua_tonumber(L, 3)) : 1.0f;
+    AudioEngine::play(sound, vol, pitch);
+    return 0;
+}
+
+static int lua_Entity_Play(lua_State* L) {
+    lua_getfield(L, 1, "id");
+    if (lua_isnumber(L, -1)) {
+        uint32_t id = static_cast<uint32_t>(lua_tointeger(L, -1));
+        World* world = ScriptEngine::getWorld();
+        if (world) {
+            Entity* e = world->getEntityById(id);
+            if (e) e->playSound();
+        }
+    }
+    lua_pop(L, 1);
+    return 0;
+}
+
 // @de/world bindings
 static int lua_World_getObject(lua_State* L) {
     const char* name = luaL_checkstring(L, 1);
@@ -65,6 +101,8 @@ static int lua_World_getObject(lua_State* L) {
     lua_setfield(L, -2, "id");
     lua_pushstring(L, entity->getName().c_str());
     lua_setfield(L, -2, "name");
+    lua_pushcfunction(L, lua_Entity_Play, "Play");
+    lua_setfield(L, -2, "Play");
 
     // Position table
     glm::vec3 pos = entity->getPosition();
@@ -147,6 +185,17 @@ int ScriptEngine::customRequire(lua_State* L) {
         lua_setfield(L, -2, "getObject");
         lua_pushcfunction(L, lua_World_getTime, "getTime");
         lua_setfield(L, -2, "getTime");
+        lua_pushcfunction(L, lua_World_playSound, "playSound");
+        lua_setfield(L, -2, "playSound");
+
+        // World.SoundObject:Play()
+        lua_newtable(L);
+        lua_pushcfunction(L, lua_SoundObject_Play, "Play");
+        lua_setfield(L, -2, "Play");
+        lua_pushcfunction(L, lua_SoundObject_Stop, "Stop");
+        lua_setfield(L, -2, "Stop");
+        lua_setfield(L, -2, "SoundObject");
+
         return 1;
     } else if (modStr == "@de/players") {
         lua_newtable(L);

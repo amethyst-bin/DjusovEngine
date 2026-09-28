@@ -14,6 +14,8 @@ public:
     static void render(const Player& player, const Weapon& weapon, const NetClient& netClient,
                        int screenWidth, int screenHeight, float adsAmount);
 
+    static void renderPauseMenu(float& inOutSensitivity, float& inOutVolume, bool& inOutResume, bool& requestExit);
+
     static bool isChatOpen() { return s_chatOpen; }
     static void toggleChat() { s_chatOpen = !s_chatOpen; }
     static void setChatOpen(bool open) { s_chatOpen = open; }

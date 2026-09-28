@@ -51,10 +51,17 @@ set(UFBX_SOURCES
     ${UFBX_DIR}/ufbx.c
 )
 
+# miniaudio vendored library
+set(MINIAUDIO_DIR "${CMAKE_CURRENT_SOURCE_DIR}/src/vendor/miniaudio")
+set(MINIAUDIO_SOURCES
+    ${MINIAUDIO_DIR}/miniaudio.c
+)
+
 add_library(DjusovVendor STATIC
     ${IMGUI_SOURCES}
     ${TEXTEDITOR_SOURCES}
     ${UFBX_SOURCES}
+    ${MINIAUDIO_SOURCES}
 )
 
 target_include_directories(DjusovVendor PUBLIC
@@ -62,6 +69,7 @@ target_include_directories(DjusovVendor PUBLIC
     ${IMGUI_DIR}/backends
     ${TEXTEDITOR_DIR}
     ${UFBX_DIR}
+    ${MINIAUDIO_DIR}
     ${GLFW_INCLUDE_DIRS}
     ${GLEW_INCLUDE_DIRS}
     ${OPENGL_INCLUDE_DIR}
@@ -92,6 +100,7 @@ set(ENGINE_INCLUDES
 file(GLOB_RECURSE ENGINE_CORE_SOURCES
     src/core/*.cpp
     src/render/*.cpp
+    src/audio/*.cpp
     src/world/*.cpp
     src/player/*.cpp
     src/script/*.cpp

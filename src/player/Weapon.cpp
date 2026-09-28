@@ -1,6 +1,7 @@
 #include "player/Weapon.hpp"
 #include "player/ViewModel.hpp"
 #include "player/FPSController.hpp"
+#include "audio/AudioEngine.hpp"
 #include <algorithm>
 
 namespace Djusov {
@@ -51,6 +52,7 @@ void Weapon::update(float dt, ViewModel& viewModel, FPSController& controller) {
 bool Weapon::fire(ViewModel& viewModel, FPSController& controller, const glm::vec3& rayOrigin, const glm::vec3& rayDir) {
     if (m_isReloading || m_fireCooldown > 0.0f || m_ammo <= 0) {
         if (m_ammo <= 0 && !m_isReloading) {
+            AudioEngine::play("weapon_empty");
             reload();
         }
         return false;
@@ -58,6 +60,9 @@ bool Weapon::fire(ViewModel& viewModel, FPSController& controller, const glm::ve
 
     m_ammo--;
     m_fireCooldown = 1.0f / m_fireRate;
+
+    // Source Engine gunshot sound!
+    AudioEngine::play("weapon_shoot");
 
     // Trigger visual muzzle flash
     m_muzzleFlashTimer = 0.06f;
@@ -81,12 +86,14 @@ void Weapon::reload() {
     if (m_isReloading || m_ammo >= m_maxAmmo || m_reserveAmmo <= 0) return;
     m_isReloading = true;
     m_reloadTimer = m_reloadDuration;
+    AudioEngine::play("weapon_reload");
 }
 
 void Weapon::registerHit(float damage, bool headshot) {
     m_hitmarker.timeRemaining = 0.35f;
     m_hitmarker.damage = damage;
     m_hitmarker.isHeadshot = headshot;
+    AudioEngine::play("hitmarker");
 }
 
 } // namespace Djusov
